@@ -4,12 +4,12 @@ This folder implements a file-based routing pattern via **expo-router**. Any fil
 
 ## Key Structure
 
--   `(tabs)/_layout.tsx` – bottom tab navigator (Home, Pantry, Community, Favorites, Settings)
--   `screens/` – feature-focused screens (Auth, Pantry, Recipe, Community, etc.)
--   `api/mockApi.ts` – mock data + generation functions (TODO: replace with Gemini + Vision + backend)
--   `store/useStore.ts` – global Zustand store with persistence (AsyncStorage)
--   `hooks/useAsyncSeed.ts` – seeds demo data on first load
--   `components/` – small reusable UI pieces
+- `(tabs)/_layout.tsx` – bottom tab navigator (Home, Pantry, Community, Favorites, Settings)
+- `screens/` – feature-focused screens (Auth, Pantry, Recipe, Community, etc.)
+- `api/mockApi.ts` – mock data + generation functions (TODO: replace with Gemini + Vision + backend)
+- `store/useStore.ts` – global Zustand store with persistence (AsyncStorage)
+- `hooks/useAsyncSeed.ts` – seeds demo data on first load
+- `components/` – small reusable UI pieces
 
 ## Running
 
@@ -24,7 +24,7 @@ Open the app, use Demo Login, add pantry items and Generate to view a mock recip
 
 ## Environment / Secrets TODOs
 
--   Firebase config & auth: `store/useStore.ts` (setUser) & future `/firebase` integration.
--   Gemini / Vision API: `api/mockApi.ts` `generateRecipeFromPantry`.
+- Firebase config & auth: `store/useStore.ts` (setUser) & future `/firebase` integration.
+- Gemini / Vision API: `api/mockApi.ts` `generateRecipeFromPantry`.
 
 Add your keys via secure storage / secrets management before production.
