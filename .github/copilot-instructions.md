@@ -3,11 +3,12 @@
 ## Tech Stack & Architecture
 
 This is a React Native recipe app built with Expo SDK 54. Key components:
-- **Framework**: React Native + Expo, TypeScript strict mode
+- **Framework**: React Native + Expo, TypeScript strict mode, React Compiler enabled
 - **Routing**: Expo Router with file-based routing (`app/` directory)
-- **State**: Zustand with AsyncStorage persistence
+- **State**: Zustand with AsyncStorage persistence + Firebase auth integration
+- **Auth**: Firebase Authentication with React Native persistence
 - **Navigation**: Stack + Tabs hybrid navigation pattern
-- **Mock API**: Local simulation layer with planned Gemini/Firebase integration
+- **API**: Firebase Auth (production) + Mock API layer for recipe/community features
 
 ## Project Structure Patterns
 
@@ -44,12 +45,19 @@ const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
 **Persisted state**: `pantryItems`, `favorites`, `user`, `hasOnboarded`
 **Runtime state**: `communityPosts` (loaded via `loadPosts()`)
 
+### Firebase Auth Integration
+The store integrates Firebase auth with centralized methods:
+- `login(email, password)` / `signup(name, email, password)` - Real Firebase auth
+- `signOut()` - Firebase logout with navigation
+- `startAuthListener()` - Auto-sync Firebase auth state to store
+- Auth loading states handled via `authLoading` flag
+
 ### Key Store Actions
-- `setUser(user)` / `clearUser()` - Auth state
+- `setUser(user)` / `clearUser()` - Auth state (auto-managed by Firebase listener)
 - `addPantryItem(item)` / `removePantryItem(id)` - Pantry management
 - `saveFavorite(recipe)` / `removeFavorite(id)` - Recipe favorites
-- `generateRecipeMock(pantry, options)` - Mock recipe generation
-- `loadPosts()` / `postCommunity(post)` - Community features
+- `generateRecipeMock(pantry, options)` - Mock recipe generation (TODO: Replace with Gemini)
+- `loadPosts()` / `postCommunity(post)` - Community features (mock implementation)
 
 ## Component Conventions
 
@@ -84,9 +92,15 @@ export default ComponentName;
 **Key Recipe Fields**: `ingredients[]`, `steps[]`, `proTips?`, `alternatives?`
 **Nutrition**: `calories_kcal`, `protein_g`, `carbs_g`, `fat_g`
 
-## API Layer (`app/api/mockApi.ts`)
+## API Layer (`app/api/mockApi.ts` & `app/api/auth.ts`)
 
-### Mock Implementation Pattern
+### Firebase Auth Implementation (`app/api/auth.ts`)
+- **Real production auth**: Uses Firebase Auth with React Native persistence
+- **Error handling**: Normalizes Firebase errors to user-friendly messages
+- **User mapping**: Converts Firebase User to app `User` type via `toAppUser()`
+- **Auth persistence**: Configured via `getReactNativePersistence(AsyncStorage)`
+
+### Mock Implementation Pattern (`app/api/mockApi.ts`)
 - All functions simulate network latency (`await delay(ms)`)
 - `generateRecipeFromPantry()` - TODO: Replace with Gemini integration
 - `getCommunityPosts()` / `postCommunityPost()` - TODO: Replace with Firebase/backend
@@ -96,6 +110,7 @@ export default ComponentName;
 The `useAsyncSeed` hook auto-loads demo data on app start:
 - Seeds community posts and pantry items if empty
 - Called from root layout to ensure data availability
+- Integrates with Zustand store for initial state hydration
 
 ## Development Workflows
 
@@ -123,12 +138,11 @@ npm run lint             # ESLint check
 
 **Critical TODOs in codebase**:
 - Replace mock recipe generation with Gemini API + vision
-- Implement Firebase Auth (replace demo user logic)
 - Replace in-memory community posts with Firestore
 - Consider splitting `types.ts` if it grows large
 
 **Integration Patterns**:
-- Auth flow through `setUser()` in store
+- Auth flow through `setUser()` in store (Firebase integration complete)
 - Recipe generation via `generateRecipeMock()` 
 - Community features through `loadPosts()` / `postCommunity()`
 - Pantry management through store actions
