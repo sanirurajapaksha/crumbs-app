@@ -1,23 +1,23 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, Alert } from "react-native";
 import { Link } from "expo-router";
 import { colors } from "../../theme/colors";
 import { useStore, StoreState } from "@/app/store/useStore";
 
 // TODO: Generate typed routes (npx expo-router generate) then remove `as any` casts across Link hrefs.
 export default function LoginScreen() {
-    const setUser = useStore((s: StoreState) => s.setUser);
-
+    const login = useStore((s: StoreState) => s.login);
+    const authLoading = useStore((s: StoreState) => s.authLoading);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const handleLogin = () => {
-        if (!email.trim()) return alert("Email required");
-        if (password.length < 6) return alert("Password too short");
-
-        setUser({ id: "demo-user", name: "Demo User", email: email, createdAt: new Date().toISOString() });
-
-        alert(`Implement the login pko`);
+        if (!email.trim()) return Alert.alert("Email required", "Please enter your email.");
+        if (password.length < 6) return Alert.alert("Password too short", "Minimum 6 characters.");
+        login(email, password).catch((e: any) => {
+            const msg = e?.message || "Login failed";
+            Alert.alert("Login failed", msg);
+        });
     };
 
     return (
@@ -43,8 +43,8 @@ export default function LoginScreen() {
                         value={password}
                         onChangeText={setPassword}
                     />
-                    <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin}>
-                        <Text style={styles.primaryTxt}>Log In</Text>
+                    <TouchableOpacity style={[styles.primaryBtn, authLoading && { opacity: 0.7 }]} onPress={handleLogin} disabled={!!authLoading}>
+                        <Text style={styles.primaryTxt}>{authLoading ? "Loading" : "Log In"}</Text>
                     </TouchableOpacity>
                     <View style={styles.inlineRow}>
                         <Text style={styles.inlineText}>Don&apos;t have an account? </Text>

@@ -4,9 +4,9 @@ import { Link } from "expo-router";
 import { colors } from "../../theme/colors";
 import { useStore, StoreState } from "@/app/store/useStore";
 
-// TODO: Replace stubs with real Firebase Auth integration
 export default function SignupScreen() {
-    const setUser = useStore((s: StoreState) => s.setUser);
+    const signup = useStore((s: StoreState) => s.signup);
+    const authLoading = useStore((s: StoreState) => s.authLoading);
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -18,10 +18,7 @@ export default function SignupScreen() {
         if (!email.trim()) return Alert.alert("Email required", "Please enter your email.");
         if (password.length < 6) return Alert.alert("Password too short", "Minimum 6 characters.");
         if (password !== confirm) return Alert.alert("Passwords do not match", "Check your confirmation password.");
-        // Stub implementation
-        Alert.alert("Signup Stub", `Creating user for ${email}`);
-        // remove this later
-        setUser({ id: "new-user", name: name, email: email, createdAt: new Date().toISOString() });
+        signup(name.trim(), email.trim(), password).catch((e: any) => Alert.alert("Signup failed", e?.message || String(e)));
     };
 
     return (
@@ -67,8 +64,13 @@ export default function SignupScreen() {
                         returnKeyType="done"
                         onSubmitEditing={handleSignup}
                     />
-                    <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup} activeOpacity={0.85}>
-                        <Text style={styles.primaryTxt}>Sign Up</Text>
+                    <TouchableOpacity
+                        style={[styles.primaryBtn, authLoading && { opacity: 0.7 }]}
+                        onPress={handleSignup}
+                        activeOpacity={0.85}
+                        disabled={!!authLoading}
+                    >
+                        <Text style={styles.primaryTxt}>{authLoading ? "Loading" : "Sign Up"}</Text>
                     </TouchableOpacity>
                     <View style={styles.inlineRow}>
                         <Text style={styles.inlineText}>Already have an account? </Text>

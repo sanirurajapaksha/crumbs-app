@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { useAsyncSeed } from "./hooks/useAsyncSeed";
 import { useStore, StoreState } from "./store/useStore";
 import { ActivityIndicator, View } from "react-native";
@@ -7,6 +7,11 @@ import { ActivityIndicator, View } from "react-native";
 export default function RootLayout() {
     useAsyncSeed();
     const user = useStore((s: StoreState) => s.user);
+    const startAuthListener = useStore((s: StoreState) => s.startAuthListener);
+
+    useEffect(() => {
+        startAuthListener();
+    }, [startAuthListener]);
     // Simple loading fallback (could track hydration if needed)
     if (user === undefined) {
         return (
