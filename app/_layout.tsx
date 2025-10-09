@@ -39,7 +39,6 @@ export default function RootLayout() {
             <Stack.Screen name="screens/Recipe/StepDetail" />
             <Stack.Screen name="screens/Shopping/ShoppingList" />
             <Stack.Screen name="screens/Community/ShareRecipe" />
-            <Stack.Screen name="screens/Settings/Settings" />
         </Stack>
     );
 }

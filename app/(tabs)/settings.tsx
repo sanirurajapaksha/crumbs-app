@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useStore, StoreState } from "../store/useStore";
 import { colors } from "@/app/theme/colors";
 
@@ -7,11 +7,20 @@ export default function Settings() {
     const user = useStore((s: StoreState) => s.user);
     const signOut = useStore((s: StoreState) => s.signOut);
     const authLoading = useStore((s: StoreState) => s.authLoading);
+
+    const handleLogout = async () => {
+        try {
+            await signOut();
+        } catch (e: any) {
+            Alert.alert("Logout failed", e?.message || String(e));
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Settings</Text>
             <Text style={styles.line}>Logged in as: {user?.email || "Guest"}</Text>
-            <TouchableOpacity style={[styles.btn, authLoading && { opacity: 0.7 }]} onPress={signOut} disabled={!!authLoading}>
+            <TouchableOpacity style={[styles.btn, authLoading && { opacity: 0.7 }]} onPress={handleLogout} disabled={!!authLoading}>
                 <Text style={styles.btnTxt}>{authLoading ? "Loading" : "Logout"}</Text>
             </TouchableOpacity>
         </View>
