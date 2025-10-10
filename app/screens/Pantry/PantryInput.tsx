@@ -2,6 +2,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
@@ -29,6 +30,8 @@ export default function PantryInput() {
     const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [loading, setLoading] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
 
     const handleAddIngredient = (name: string) => {
         if (name.trim()) {
@@ -44,8 +47,21 @@ export default function PantryInput() {
     };
 
     const handleEditIngredient = (id: string) => {
-        // For now, just show alert - can implement edit modal later
-        Alert.alert("Edit", "Edit functionality coming soon!");
+        const ingredient = ingredients.find(item => item.id === id);
+        if (ingredient) {
+            setEditingIngredient(ingredient);
+            setEditModalVisible(true);
+        }
+    };
+
+    const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
+        setIngredients(prev => 
+            prev.map(item => 
+                item.id === updatedIngredient.id ? updatedIngredient : item
+            )
+        );
+        setEditModalVisible(false);
+        setEditingIngredient(null);
     };
 
     const handleDeleteIngredient = (id: string) => {
@@ -254,6 +270,17 @@ export default function PantryInput() {
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Edit Ingredient Modal */}
+            <EditIngredientModal
+                visible={editModalVisible}
+                ingredient={editingIngredient}
+                onClose={() => {
+                    setEditModalVisible(false);
+                    setEditingIngredient(null);
+                }}
+                onSave={handleSaveEditedIngredient}
+            />
         </View>
     );
 }

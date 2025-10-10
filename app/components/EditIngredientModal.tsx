@@ -1,0 +1,332 @@
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { colors } from '../theme/colors';
+
+interface IngredientData {
+    id: string;
+    name: string;
+    quantity?: string;
+    category?: string;
+    expiryDate?: string | null;
+}
+
+interface EditIngredientModalProps {
+    visible: boolean;
+    ingredient: IngredientData | null;
+    onClose: () => void;
+    onSave: (updatedIngredient: IngredientData) => void;
+}
+
+const categories = [
+    'vegetables',
+    'fruits', 
+    'dairy & eggs',
+    'grains',
+    'proteins',
+    'spices & seasonings',
+    'other'
+];
+
+export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
+    visible,
+    ingredient,
+    onClose,
+    onSave
+}) => {
+    const [name, setName] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [category, setCategory] = useState('other');
+    const [expiryDate, setExpiryDate] = useState('');
+
+    useEffect(() => {
+        if (ingredient) {
+            setName(ingredient.name);
+            setQuantity(ingredient.quantity || '');
+            setCategory(ingredient.category || 'other');
+            // Format date for display if exists
+            if (ingredient.expiryDate) {
+                const date = new Date(ingredient.expiryDate);
+                setExpiryDate(date.toISOString().split('T')[0]);
+            } else {
+                setExpiryDate('');
+            }
+        }
+    }, [ingredient]);
+
+    const handleSave = () => {
+        if (!name.trim()) {
+            Alert.alert('Name Required', 'Please enter an ingredient name.');
+            return;
+        }
+
+        if (!ingredient) return;
+
+        const updatedIngredient: IngredientData = {
+            ...ingredient,
+            name: name.trim(),
+            quantity: quantity.trim() || undefined,
+            category: category,
+            expiryDate: expiryDate ? new Date(expiryDate).toISOString() : null
+        };
+
+        onSave(updatedIngredient);
+        onClose();
+    };
+
+    const handleCancel = () => {
+        // Reset form to original values
+        if (ingredient) {
+            setName(ingredient.name);
+            setQuantity(ingredient.quantity || '');
+            setCategory(ingredient.category || 'other');
+            if (ingredient.expiryDate) {
+                const date = new Date(ingredient.expiryDate);
+                setExpiryDate(date.toISOString().split('T')[0]);
+            } else {
+                setExpiryDate('');
+            }
+        }
+        onClose();
+    };
+
+    if (!ingredient) return null;
+
+    return (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={visible}
+            onRequestClose={handleCancel}
+        >
+            <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.modalTitle}>Edit Ingredient</Text>
+                        <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
+                            <Ionicons name="close" size={24} color={colors.textMuted} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                        {/* Name Field */}
+                        <View style={styles.fieldContainer}>
+                            <Text style={styles.fieldLabel}>Name *</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={name}
+                                onChangeText={setName}
+                                placeholder="Enter ingredient name"
+                                placeholderTextColor={colors.textMuted}
+                                autoCapitalize="words"
+                            />
+                        </View>
+
+                        {/* Quantity Field */}
+                        <View style={styles.fieldContainer}>
+                            <Text style={styles.fieldLabel}>Quantity</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={quantity}
+                                onChangeText={setQuantity}
+                                placeholder="e.g., 2 lbs, 1 cup, 3 pieces"
+                                placeholderTextColor={colors.textMuted}
+                            />
+                        </View>
+
+                        {/* Category Field */}
+                        <View style={styles.fieldContainer}>
+                            <Text style={styles.fieldLabel}>Category</Text>
+                            <View style={styles.categoryContainer}>
+                                {categories.map((cat) => (
+                                    <TouchableOpacity
+                                        key={cat}
+                                        style={[
+                                            styles.categoryChip,
+                                            category === cat && styles.categoryChipSelected
+                                        ]}
+                                        onPress={() => setCategory(cat)}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.categoryChipText,
+                                                category === cat && styles.categoryChipTextSelected
+                                            ]}
+                                        >
+                                            {cat}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Expiry Date Field */}
+                        <View style={styles.fieldContainer}>
+                            <Text style={styles.fieldLabel}>Expiry Date (Optional)</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={expiryDate}
+                                onChangeText={setExpiryDate}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={colors.textMuted}
+                            />
+                            <Text style={styles.fieldHint}>
+                                Format: YYYY-MM-DD (e.g., 2025-12-31)
+                            </Text>
+                        </View>
+                    </ScrollView>
+
+                    {/* Action Buttons */}
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity 
+                            style={styles.cancelButton} 
+                            onPress={handleCancel}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.saveButton} 
+                            onPress={handleSave}
+                        >
+                            <Text style={styles.saveButtonText}>Save Changes</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+const styles = StyleSheet.create({
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalView: {
+        width: '90%',
+        maxHeight: '80%',
+        backgroundColor: colors.white,
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        paddingBottom: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: colors.textPrimary,
+    },
+    closeButton: {
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    content: {
+        maxHeight: 400,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    fieldContainer: {
+        marginBottom: 20,
+    },
+    fieldLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    textInput: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: colors.textPrimary,
+        backgroundColor: colors.white,
+    },
+    fieldHint: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 4,
+    },
+    categoryContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    categoryChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: colors.neutral200,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    categoryChipSelected: {
+        backgroundColor: colors.accent,
+        borderColor: colors.accent,
+    },
+    categoryChipText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textTransform: 'capitalize',
+    },
+    categoryChipTextSelected: {
+        color: colors.white,
+        fontWeight: '500',
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 20,
+        paddingTop: 16,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.border,
+        gap: 12,
+    },
+    cancelButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: colors.neutral200,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: colors.textSecondary,
+    },
+    saveButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: colors.accent,
+        alignItems: 'center',
+    },
+    saveButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.white,
+    },
+});
+
+export default EditIngredientModal;

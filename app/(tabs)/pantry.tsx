@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { EditIngredientModal } from "../components/EditIngredientModal";
 import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { PantryItem } from "../types";
@@ -67,9 +68,10 @@ const getItemImage = (itemName: string) => {
 
 interface PantryItemCardProps {
     item: PantryItem;
+    onEdit: (item: PantryItem) => void;
 }
 
-const PantryItemCard: React.FC<PantryItemCardProps> = ({ item }) => {
+const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
     const expiryInfo = getExpiryStatus(item.expiryDate);
     
     return (
@@ -87,6 +89,12 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item }) => {
                     <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>
                 )}
             </View>
+            <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => onEdit(item)}
+            >
+                <Text style={styles.editButtonText}>✏️</Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -94,16 +102,17 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item }) => {
 interface CategorySectionProps {
     title: string;
     items: PantryItem[];
+    onEditItem: (item: PantryItem) => void;
 }
 
-const CategorySection: React.FC<CategorySectionProps> = ({ title, items }) => {
+const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onEditItem }) => {
     if (items.length === 0) return null;
     
     return (
         <View style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{title}</Text>
             {items.map((item) => (
-                <PantryItemCard key={item.id} item={item} />
+                <PantryItemCard key={item.id} item={item} onEdit={onEditItem} />
             ))}
         </View>
     );
@@ -111,7 +120,21 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items }) => {
 
 export default function PantryTab() {
     const items = useStore((s: StoreState) => s.pantryItems);
+    const updatePantryItem = useStore((s: StoreState) => s.updatePantryItem);
     const categorizedItems = categorizeItems(items);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+
+    const handleEditItem = (item: PantryItem) => {
+        setEditingItem(item);
+        setEditModalVisible(true);
+    };
+
+    const handleSaveEditedItem = (updatedItem: PantryItem) => {
+        updatePantryItem(updatedItem.id, updatedItem);
+        setEditModalVisible(false);
+        setEditingItem(null);
+    };
     
     return (
         <View style={styles.container}>
@@ -132,20 +155,24 @@ export default function PantryTab() {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <CategorySection 
                     title="Vegetables" 
-                    items={categorizedItems.vegetables} 
+                    items={categorizedItems.vegetables}
+                    onEditItem={handleEditItem}
                 />
                 <CategorySection 
                     title="Fruits" 
-                    items={categorizedItems.fruits} 
+                    items={categorizedItems.fruits}
+                    onEditItem={handleEditItem}
                 />
                 <CategorySection 
                     title="Dairy & Eggs" 
-                    items={categorizedItems["dairy & eggs"]} 
+                    items={categorizedItems["dairy & eggs"]}
+                    onEditItem={handleEditItem}
                 />
                 {categorizedItems.other.length > 0 && (
                     <CategorySection 
                         title="Other" 
-                        items={categorizedItems.other} 
+                        items={categorizedItems.other}
+                        onEditItem={handleEditItem}
                     />
                 )}
                 
@@ -157,6 +184,17 @@ export default function PantryTab() {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Edit Ingredient Modal */}
+            <EditIngredientModal
+                visible={editModalVisible}
+                ingredient={editingItem}
+                onClose={() => {
+                    setEditModalVisible(false);
+                    setEditingItem(null);
+                }}
+                onSave={handleSaveEditedItem}
+            />
         </View>
     );
 }
@@ -271,6 +309,18 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: `${colors.textPrimary}99`, // 60% opacity
         fontFamily: "System",
+    },
+    editButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.neutral200,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 8,
+    },
+    editButtonText: {
+        fontSize: 16,
     },
     emptyState: {
         alignItems: "center",
