@@ -23,17 +23,17 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="pantry"
-                options={{
-                    title: "Pantry",
-                    tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
-                }}
-            />
-            <Tabs.Screen
                 name="community"
                 options={{
                     title: "Generate",
                     tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="pantry"
+                options={{
+                    title: "Pantry",
+                    tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
                 }}
             />
             <Tabs.Screen
