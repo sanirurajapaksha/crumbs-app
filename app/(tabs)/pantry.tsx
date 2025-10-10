@@ -17,7 +17,7 @@ const categorizeItems = (items: PantryItem[]) => {
         other: [] as PantryItem[],
     };
 
-    items.forEach(item => {
+    items.forEach((item) => {
         const category = item.category?.toLowerCase() || "other";
         if (category.includes("vegetable") || category === "vegetables") {
             categories.vegetables.push(item);
@@ -36,16 +36,16 @@ const categorizeItems = (items: PantryItem[]) => {
 // Helper function to get expiry status
 const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { status: "Fresh", color: colors.success, daysLeft: null };
-    
+
     const today = new Date();
     const expiry = new Date(expiryDate);
     const diffTime = expiry.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
         return { status: "Expired", color: "#EF4444", daysLeft: "Expired" };
     } else if (diffDays <= 2) {
-        return { status: "Expiring", color: "#F59E0B", daysLeft: `${diffDays} day${diffDays === 1 ? '' : 's'} left` };
+        return { status: "Expiring", color: "#F59E0B", daysLeft: `${diffDays} day${diffDays === 1 ? "" : "s"} left` };
     } else {
         return { status: "Fresh", color: colors.success, daysLeft: `${diffDays} days left` };
     }
@@ -80,10 +80,11 @@ const PantryItemImage: React.FC<PantryItemImageProps> = ({ item, onImageError })
     };
 
     const handleRetry = () => {
-        if (retryCount < 2) { // Max 2 retries
+        if (retryCount < 2) {
+            // Max 2 retries
             setError(false);
             setLoading(true);
-            setRetryCount(prev => prev + 1);
+            setRetryCount((prev) => prev + 1);
         }
     };
 
@@ -102,13 +103,7 @@ const PantryItemImage: React.FC<PantryItemImageProps> = ({ item, onImageError })
                     <Text style={styles.imageFallbackText}>Tap to retry</Text>
                 </TouchableOpacity>
             ) : (
-                <Image
-                    source={imageSource}
-                    style={styles.itemImage}
-                    onLoad={handleLoad}
-                    onError={handleError}
-                    onLoadStart={() => setLoading(true)}
-                />
+                <Image source={imageSource} style={styles.itemImage} onLoad={handleLoad} onError={handleError} onLoadStart={() => setLoading(true)} />
             )}
         </View>
     );
@@ -121,7 +116,7 @@ interface PantryItemCardProps {
 
 const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
     const expiryInfo = getExpiryStatus(item.expiryDate);
-    
+
     return (
         <View style={styles.itemCard}>
             <PantryItemImage item={item} />
@@ -130,17 +125,10 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
                 <Text style={styles.itemQuantity}>{item.quantity || "1 unit"}</Text>
             </View>
             <View style={styles.itemStatus}>
-                <Text style={[styles.statusText, { color: expiryInfo.color }]}>
-                    {expiryInfo.status}
-                </Text>
-                {expiryInfo.daysLeft && (
-                    <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>
-                )}
+                <Text style={[styles.statusText, { color: expiryInfo.color }]}>{expiryInfo.status}</Text>
+                {expiryInfo.daysLeft && <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>}
             </View>
-            <TouchableOpacity 
-                style={styles.editButton}
-                onPress={() => onEdit(item)}
-            >
+            <TouchableOpacity style={styles.editButton} onPress={() => onEdit(item)}>
                 <MaterialIcons name="edit" size={16} color={colors.textMuted} />
             </TouchableOpacity>
         </View>
@@ -155,7 +143,7 @@ interface CategorySectionProps {
 
 const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onEditItem }) => {
     if (items.length === 0) return null;
-    
+
     return (
         <View style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{title}</Text>
@@ -190,7 +178,7 @@ export default function PantryTab() {
         setEditModalVisible(false);
         setEditingItem(null);
     };
-    
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -207,33 +195,12 @@ export default function PantryTab() {
             </View>
 
             {/* Content */}
-            <ScrollView 
-                style={styles.content} 
-                showsVerticalScrollIndicator={false}
-            >
-                <CategorySection 
-                    title="Vegetables" 
-                    items={categorizedItems.vegetables}
-                    onEditItem={handleEditItem}
-                />
-                <CategorySection 
-                    title="Fruits" 
-                    items={categorizedItems.fruits}
-                    onEditItem={handleEditItem}
-                />
-                <CategorySection 
-                    title="Dairy & Eggs" 
-                    items={categorizedItems["dairy & eggs"]}
-                    onEditItem={handleEditItem}
-                />
-                {categorizedItems.other.length > 0 && (
-                    <CategorySection 
-                        title="Other" 
-                        items={categorizedItems.other}
-                        onEditItem={handleEditItem}
-                    />
-                )}
-                
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <CategorySection title="Vegetables" items={categorizedItems.vegetables} onEditItem={handleEditItem} />
+                <CategorySection title="Fruits" items={categorizedItems.fruits} onEditItem={handleEditItem} />
+                <CategorySection title="Dairy & Eggs" items={categorizedItems["dairy & eggs"]} onEditItem={handleEditItem} />
+                {categorizedItems.other.length > 0 && <CategorySection title="Other" items={categorizedItems.other} onEditItem={handleEditItem} />}
+
                 {/* Empty state */}
                 {items.length === 0 && (
                     <View style={styles.emptyState}>
