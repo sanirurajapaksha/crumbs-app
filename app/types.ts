@@ -1,6 +1,13 @@
 // Global app domain types
 // TODO: Consider splitting into smaller files if this grows.
 
+export interface Comment {
+    id: string;
+    name: string;
+    when: string;
+    text: string;
+}
+
 export interface User {
     id: string;
     name: string;
@@ -52,6 +59,7 @@ export interface CommunityPost {
     tags?: string[];
     createdAt?: string;
     likeCount?: number;
+    comments?: Comment[];
 }
 
 export type NotificationType = "recipe" | "community" | "system" | "like";

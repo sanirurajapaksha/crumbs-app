@@ -3,6 +3,7 @@ import { CommunityPost } from "@/app/types";
 import { generateFoodImage } from "@/app/utils/imageUtils";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Link } from "expo-router";
 
 function timeAgo(iso?: string) {
     if (!iso) return "now";
@@ -25,39 +26,41 @@ export default function PostCard(posts: CommunityPost) {
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
     return (
-        <TouchableOpacity activeOpacity={0.5}>
-            <View style={styles.card}>
-                <Image source={{ uri: hero }} style={styles.hero} />
-                <View style={styles.cardBody}>
-                    <View style={styles.authorRow}>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarTxt}>{authorName.charAt(0).toUpperCase()}</Text>
+        <Link href={{ pathname: "/screens/Community/PostPage", params: { id: posts.id } } as any} asChild>
+            <TouchableOpacity activeOpacity={0.5}>
+                <View style={styles.card}>
+                    <Image source={{ uri: hero }} style={styles.hero} />
+                    <View style={styles.cardBody}>
+                        <View style={styles.authorRow}>
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarTxt}>{authorName.charAt(0).toUpperCase()}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.authorName}>{authorName}</Text>
+                                <Text style={styles.handle}>{handle}</Text>
+                            </View>
+                            <Ionicons name="ellipsis-horizontal" size={18} color={colors.neutral600} />
                         </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.authorName}>{authorName}</Text>
-                            <Text style={styles.handle}>{handle}</Text>
-                        </View>
-                        <Ionicons name="ellipsis-horizontal" size={18} color={colors.neutral600} />
-                    </View>
-                    <Text style={styles.title}>{title}</Text>
-                    {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-                    <View style={styles.metaRow}>
-                        <View style={styles.metaItem}>
-                            <Ionicons name="time-outline" size={16} color={colors.neutral600} />
-                            <Text style={styles.metaTxt}>{time}</Text>
-                        </View>
-                        <View style={styles.metaItem}>
-                            <Ionicons name="heart-outline" size={16} color={colors.neutral600} />
-                            <Text style={styles.metaTxt}>{likes}</Text>
-                        </View>
-                        <View style={styles.metaItem}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.neutral600} />
-                            <Text style={styles.metaTxt}>0</Text>
+                        <Text style={styles.title}>{title}</Text>
+                        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                        <View style={styles.metaRow}>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="time-outline" size={16} color={colors.neutral600} />
+                                <Text style={styles.metaTxt}>{time}</Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="heart-outline" size={16} color={colors.neutral600} />
+                                <Text style={styles.metaTxt}>{likes}</Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.neutral600} />
+                                <Text style={styles.metaTxt}>0</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </Link>
     );
 }
 

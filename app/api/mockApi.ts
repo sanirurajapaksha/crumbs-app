@@ -72,11 +72,16 @@ export function seedMockData() {
         communityPosts = [
             {
                 id: "seed-1",
-                authorId: "demo-user",
+                authorId: "Saniru",
                 text: "Just made this quick quinoa bowl!",
                 tags: ["quick", "high-protein"],
                 createdAt: new Date().toISOString(),
                 likeCount: 5,
+                comments: [
+                    { id: "c1", name: "Liam Harper", when: "2d", text: "This soup looks amazing! Can't wait to try it." },
+                    { id: "c2", name: "Ava Bennett", when: "1d", text: "I made this last night and it was a hit! Thanks for sharing." },
+                    { id: "c3", name: "Noah Wilson", when: "5h", text: "What kind of lentils did you use? Red or green?" },
+                ],
             },
             {
                 id: "seed-2",
@@ -85,115 +90,119 @@ export function seedMockData() {
                 tags: ["pantry"],
                 createdAt: new Date(Date.now() - 3600_000).toISOString(),
                 likeCount: 2,
+                comments: [
+                    { id: "c4", name: "Emma Johnson", when: "3h", text: "Pantry meals are the best! So convenient." },
+                    { id: "c5", name: "Olivia Smith", when: "1h", text: "Totally agree! I always have ingredients on hand." },
+                ],
             },
         ];
     }
     if (pantrySeed.length === 0) {
         const today = new Date();
         pantrySeed = [
-                        // Vegetables
-            { 
-                id: "p1", 
-                name: "Broccoli", 
-                quantity: "3 heads", 
+            // Vegetables
+            {
+                id: "p1",
+                name: "Broccoli",
+                quantity: "3 heads",
                 category: "vegetables",
                 expiryDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days
-                imageUrl: generateFoodImage("Broccoli", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Broccoli", { width: 200, height: 200 }),
             },
-            { 
-                id: "p2", 
-                name: "Carrots", 
-                quantity: "2 lbs", 
+            {
+                id: "p2",
+                name: "Carrots",
+                quantity: "2 lbs",
                 category: "vegetables",
                 expiryDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days
-                imageUrl: generateFoodImage("Carrots", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Carrots", { width: 200, height: 200 }),
             },
-            { 
-                id: "p3", 
-                name: "Spinach", 
-                quantity: "1 lb", 
+            {
+                id: "p3",
+                name: "Spinach",
+                quantity: "1 lb",
                 category: "vegetables",
                 expiryDate: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day (expiring)
-                imageUrl: generateFoodImage("Spinach", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Spinach", { width: 200, height: 200 }),
             },
             // Fruits
-            { 
-                id: "p4", 
-                name: "Apples", 
-                quantity: "6", 
+            {
+                id: "p4",
+                name: "Apples",
+                quantity: "6",
                 category: "fruits",
                 expiryDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-                imageUrl: generateFoodImage("Apples", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Apples", { width: 200, height: 200 }),
             },
-            { 
-                id: "p5", 
-                name: "Bananas", 
-                quantity: "1 bunch", 
+            {
+                id: "p5",
+                name: "Bananas",
+                quantity: "1 bunch",
                 category: "fruits",
                 expiryDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(), // expired
-                imageUrl: generateFoodImage("Bananas", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Bananas", { width: 200, height: 200 }),
             },
-            { 
-                id: "p6", 
-                name: "Blueberries", 
-                quantity: "1 pint", 
+            {
+                id: "p6",
+                name: "Blueberries",
+                quantity: "1 pint",
                 category: "fruits",
                 expiryDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days
-                imageUrl: generateFoodImage("Blueberries", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Blueberries", { width: 200, height: 200 }),
             },
             // Dairy & Eggs
-            { 
-                id: "p7", 
-                name: "Eggs", 
-                quantity: "1 dozen", 
+            {
+                id: "p7",
+                name: "Eggs",
+                quantity: "1 dozen",
                 category: "dairy & eggs",
                 expiryDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days
-                imageUrl: generateFoodImage("Eggs", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Eggs", { width: 200, height: 200 }),
             },
-            { 
-                id: "p8", 
-                name: "Milk", 
-                quantity: "1 gallon", 
+            {
+                id: "p8",
+                name: "Milk",
+                quantity: "1 gallon",
                 category: "dairy & eggs",
                 expiryDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days (expiring)
-                imageUrl: generateFoodImage("Milk", { width: 200, height: 200 })
+                imageUrl: generateFoodImage("Milk", { width: 200, height: 200 }),
             },
             // Fruits
-            { 
-                id: "p4", 
-                name: "Apples", 
-                quantity: "6", 
+            {
+                id: "p4",
+                name: "Apples",
+                quantity: "6",
                 category: "fruits",
-                expiryDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+                expiryDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
             },
-            { 
-                id: "p5", 
-                name: "Bananas", 
-                quantity: "1 bunch", 
+            {
+                id: "p5",
+                name: "Bananas",
+                quantity: "1 bunch",
                 category: "fruits",
-                expiryDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString() // expired
+                expiryDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(), // expired
             },
-            { 
-                id: "p6", 
-                name: "Blueberries", 
-                quantity: "1 pint", 
+            {
+                id: "p6",
+                name: "Blueberries",
+                quantity: "1 pint",
                 category: "fruits",
-                expiryDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days
+                expiryDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days
             },
             // Dairy & Eggs
-            { 
-                id: "p7", 
-                name: "Eggs", 
-                quantity: "1 dozen", 
+            {
+                id: "p7",
+                name: "Eggs",
+                quantity: "1 dozen",
                 category: "dairy & eggs",
-                expiryDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days
+                expiryDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days
             },
-            { 
-                id: "p8", 
-                name: "Milk", 
-                quantity: "1 gallon", 
+            {
+                id: "p8",
+                name: "Milk",
+                quantity: "1 gallon",
                 category: "dairy & eggs",
-                expiryDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days (expiring)
+                expiryDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days (expiring)
             },
         ];
     }
