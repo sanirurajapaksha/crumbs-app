@@ -5,6 +5,10 @@ import {
     signOut,
     updateProfile,
     onAuthStateChanged,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    sendPasswordResetEmail,
     User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "../firebase/config";
@@ -36,6 +40,10 @@ const mapAuthError = (err: unknown): Error => {
                 return new Error("Password should be at least 6 characters.");
             case "auth/invalid-credential":
                 return new Error("Invalid authentication credential.");
+            case "auth/requires-recent-login":
+                return new Error("Please log out and log back in before changing your password.");
+            case "auth/too-many-requests":
+                return new Error("Too many attempts. Please try again later.");
             default:
                 return new Error((err as FirebaseError).message || "Authentication error.");
         }
@@ -81,4 +89,32 @@ export function subscribeToAuth(callback: (user: User | null) => void) {
     return onAuthStateChanged(auth, (fbUser) => {
         callback(fbUser ? toAppUser(fbUser) : null);
     });
+}
+
+// Change password with reauthentication
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+        const user = auth.currentUser;
+        if (!user || !user.email) {
+            throw new Error("No user is currently logged in.");
+        }
+
+        // Reauthenticate user with current password
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, credential);
+
+        // Update password
+        await updatePassword(user, newPassword);
+    } catch (e) {
+        throw mapAuthError(e);
+    }
+}
+
+// Send password reset email
+export async function sendPasswordReset(email: string): Promise<void> {
+    try {
+        await sendPasswordResetEmail(auth, email);
+    } catch (e) {
+        throw mapAuthError(e);
+    }
 }

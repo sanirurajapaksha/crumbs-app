@@ -7,6 +7,9 @@ export interface User {
     email: string;
     dietaryPreferences?: string[];
     createdAt?: string;
+    bio?: string;
+    joinYear?: string;
+    avatarUrl?: string;
 }
 export interface PantryItem {
     id: string;
@@ -48,6 +51,18 @@ export interface CommunityPost {
     tags?: string[];
     createdAt?: string;
     likeCount?: number;
+}
+
+export type NotificationType = "recipe" | "community" | "system" | "like";
+
+export interface Notification {
+    id: string;
+    type: NotificationType;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+    image?: string;
 }
 
 export type GenerateOptions = { boostProtein?: boolean; timeConstraintMin?: number };
