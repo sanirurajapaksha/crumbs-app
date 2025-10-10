@@ -83,7 +83,7 @@ export default function PantryInput() {
 
     const openCamera = () => {
         // Navigate to camera screen
-        router.push("./CameraScreen" as any);
+        router.push("./CameraScreen");
     };
 
     const mockVoice = () => {
