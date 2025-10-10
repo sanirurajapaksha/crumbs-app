@@ -1,10 +1,11 @@
 import { Link } from "expo-router";
 import React, { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { EditIngredientModal } from "../components/EditIngredientModal";
 import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { PantryItem } from "../types";
+import { getPantryItemImage } from "../utils/imageUtils";
 
 // Helper function to categorize pantry items
 const categorizeItems = (items: PantryItem[]) => {
@@ -49,21 +50,67 @@ const getExpiryStatus = (expiryDate: string | null | undefined) => {
     }
 };
 
-// Helper function to get item image placeholder
-const getItemImage = (itemName: string) => {
-    // You can replace these with actual images later
-    const itemImages: { [key: string]: any } = {
-        broccoli: require("../../assets/images/react-logo.png"),
-        carrots: require("../../assets/images/react-logo.png"),
-        spinach: require("../../assets/images/react-logo.png"),
-        apples: require("../../assets/images/react-logo.png"),
-        bananas: require("../../assets/images/react-logo.png"),
-        blueberries: require("../../assets/images/react-logo.png"),
-        eggs: require("../../assets/images/react-logo.png"),
-        milk: require("../../assets/images/react-logo.png"),
+// Helper function to get item image from Pollinations.ai
+const getItemImageSource = (item: PantryItem) => {
+    const imageUrl = getPantryItemImage(item.name, item.imageUrl);
+    return { uri: imageUrl };
+};
+
+// Enhanced image component with loading states and fallback
+interface PantryItemImageProps {
+    item: PantryItem;
+    onImageError?: () => void;
+}
+
+const PantryItemImage: React.FC<PantryItemImageProps> = ({ item, onImageError }) => {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+
+    const handleError = () => {
+        setError(true);
+        setLoading(false);
+        onImageError?.();
     };
-    
-    return itemImages[itemName.toLowerCase()] || require("../../assets/images/react-logo.png");
+
+    const handleLoad = () => {
+        setLoading(false);
+        setError(false);
+    };
+
+    const handleRetry = () => {
+        if (retryCount < 2) { // Max 2 retries
+            setError(false);
+            setLoading(true);
+            setRetryCount(prev => prev + 1);
+        }
+    };
+
+    const imageSource = getItemImageSource(item);
+
+    return (
+        <View style={styles.imageContainer}>
+            {loading && (
+                <View style={styles.imageLoader}>
+                    <ActivityIndicator size="small" color={colors.accent} />
+                </View>
+            )}
+            {error ? (
+                <TouchableOpacity style={styles.imageFallback} onPress={handleRetry}>
+                    <Text style={styles.imageFallbackEmoji}>🍽️</Text>
+                    <Text style={styles.imageFallbackText}>Tap to retry</Text>
+                </TouchableOpacity>
+            ) : (
+                <Image
+                    source={imageSource}
+                    style={styles.itemImage}
+                    onLoad={handleLoad}
+                    onError={handleError}
+                    onLoadStart={() => setLoading(true)}
+                />
+            )}
+        </View>
+    );
 };
 
 interface PantryItemCardProps {
@@ -76,7 +123,7 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
     
     return (
         <View style={styles.itemCard}>
-            <Image source={getItemImage(item.name)} style={styles.itemImage} />
+            <PantryItemImage item={item} />
             <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemQuantity}>{item.quantity || "1 unit"}</Text>
@@ -152,7 +199,10 @@ export default function PantryTab() {
             </View>
 
             {/* Content */}
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+            >
                 <CategorySection 
                     title="Vegetables" 
                     items={categorizedItems.vegetables}
@@ -335,5 +385,45 @@ const styles = StyleSheet.create({
     emptyStateSubtext: {
         fontSize: 14,
         color: colors.textMuted,
+    },
+    // Image component styles
+    imageContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 32,
+        backgroundColor: colors.neutral200,
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+    },
+    imageLoader: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.neutral200,
+        borderRadius: 32,
+        zIndex: 2,
+    },
+    imageFallback: {
+        width: 56,
+        height: 56,
+        borderRadius: 32,
+        backgroundColor: colors.neutral300,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    imageFallbackEmoji: {
+        fontSize: 20,
+        marginBottom: 2,
+    },
+    imageFallbackText: {
+        fontSize: 8,
+        color: colors.textMuted,
+        textAlign: "center",
+        fontWeight: "500",
     },
 });

@@ -19,6 +19,7 @@ export interface PantryItem {
     quantity?: string;
     expiryDate?: string | null;
     addedAt?: string;
+    imageUrl?: string;
 }
 export interface RecipeStep {
     stepNumber: number;

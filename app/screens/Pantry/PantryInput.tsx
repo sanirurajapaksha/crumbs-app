@@ -6,6 +6,7 @@ import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
+import { generateFoodImage } from "../../utils/imageUtils";
 
 interface IngredientItem {
     id: string;
@@ -105,6 +106,7 @@ export default function PantryInput() {
                 quantity: ingredient.quantity,
                 category: ingredient.category,
                 addedAt: new Date().toISOString(),
+                imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
             };
             addPantryItem(pantryItem);
         });
@@ -131,6 +133,7 @@ export default function PantryInput() {
                     quantity: ingredient.quantity,
                     category: ingredient.category,
                     addedAt: new Date().toISOString(),
+                    imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
                 };
                 addPantryItem(pantryItem);
             });
