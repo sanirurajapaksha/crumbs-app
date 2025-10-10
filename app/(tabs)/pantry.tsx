@@ -169,6 +169,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onEditI
 export default function PantryTab() {
     const items = useStore((s: StoreState) => s.pantryItems);
     const updatePantryItem = useStore((s: StoreState) => s.updatePantryItem);
+    const removePantryItem = useStore((s: StoreState) => s.removePantryItem);
     const categorizedItems = categorizeItems(items);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
@@ -180,6 +181,12 @@ export default function PantryTab() {
 
     const handleSaveEditedItem = (updatedItem: PantryItem) => {
         updatePantryItem(updatedItem.id, updatedItem);
+        setEditModalVisible(false);
+        setEditingItem(null);
+    };
+
+    const handleDeleteItem = (itemId: string) => {
+        removePantryItem(itemId);
         setEditModalVisible(false);
         setEditingItem(null);
     };
@@ -245,6 +252,7 @@ export default function PantryTab() {
                     setEditingItem(null);
                 }}
                 onSave={handleSaveEditedItem}
+                onDelete={handleDeleteItem}
             />
         </View>
     );

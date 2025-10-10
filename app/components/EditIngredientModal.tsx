@@ -16,6 +16,7 @@ interface EditIngredientModalProps {
     ingredient: IngredientData | null;
     onClose: () => void;
     onSave: (updatedIngredient: IngredientData) => void;
+    onDelete?: (ingredientId: string) => void;
 }
 
 const categories = [
@@ -32,7 +33,8 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
     visible,
     ingredient,
     onClose,
-    onSave
+    onSave,
+    onDelete
 }) => {
     const [name, setName] = useState('');
     const [quantity, setQuantity] = useState('');
@@ -88,6 +90,29 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
             }
         }
         onClose();
+    };
+
+    const handleDelete = () => {
+        if (!ingredient || !onDelete) return;
+
+        Alert.alert(
+            'Delete Ingredient',
+            `Are you sure you want to delete "${ingredient.name}" from your pantry?`,
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                        onDelete(ingredient.id);
+                        onClose();
+                    },
+                },
+            ]
+        );
     };
 
     if (!ingredient) return null;
@@ -179,6 +204,14 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
 
                     {/* Action Buttons */}
                     <View style={styles.buttonContainer}>
+                        {onDelete && (
+                            <TouchableOpacity 
+                                style={styles.deleteButton} 
+                                onPress={handleDelete}
+                            >
+                                <Ionicons name="trash-outline" size={16} color={colors.white} />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity 
                             style={styles.cancelButton} 
                             onPress={handleCancel}
@@ -302,6 +335,14 @@ const styles = StyleSheet.create({
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: colors.border,
         gap: 12,
+    },
+    deleteButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#EF4444',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     cancelButton: {
         flex: 1,
