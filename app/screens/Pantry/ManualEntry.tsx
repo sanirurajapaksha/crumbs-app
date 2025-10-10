@@ -1,7 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { categorizeIngredient } from "../../api/groqApi";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
@@ -33,19 +34,55 @@ export default function ManualEntry() {
         { id: "4", name: "Sugar", quantity: "1 lb", category: "other" },
     ]);
     const [newIngredient, setNewIngredient] = useState("");
+    const [isCategorizingIngredient, setIsCategorizingIngredient] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
 
-    const handleAddIngredient = (name: string) => {
+    const handleAddIngredient = async (name: string) => {
         if (name.trim()) {
-            const newItem: IngredientItem = {
-                id: `${Date.now()}-${Math.random()}`,
-                name: name.trim(),
-                quantity: "1",
-                category: "other"
-            };
-            setIngredients(prev => [...prev, newItem]);
-            setNewIngredient("");
+            setIsCategorizingIngredient(true);
+            try {
+                // Get AI-generated category
+                const category = await categorizeIngredient(name.trim());
+                
+                const newItem: IngredientItem = {
+                    id: `${Date.now()}-${Math.random()}`,
+                    name: name.trim(),
+                    quantity: "1",
+                    category: category
+                };
+                setIngredients(prev => [...prev, newItem]);
+                setNewIngredient("");
+                
+                // Show success message with category
+                if (category !== 'other') {
+                    Alert.alert(
+                        "Ingredient Added",
+                        `"${name.trim()}" has been categorized as "${category}" by AI.`,
+                        [{ text: "OK" }],
+                        { cancelable: true }
+                    );
+                }
+            } catch (error) {
+                console.error('Error categorizing ingredient:', error);
+                // Fallback to default category if API fails
+                const newItem: IngredientItem = {
+                    id: `${Date.now()}-${Math.random()}`,
+                    name: name.trim(),
+                    quantity: "1",
+                    category: "other"
+                };
+                setIngredients(prev => [...prev, newItem]);
+                setNewIngredient("");
+                
+                Alert.alert(
+                    "Ingredient Added",
+                    `"${name.trim()}" has been added with default category (AI categorization failed).`,
+                    [{ text: "OK" }]
+                );
+            } finally {
+                setIsCategorizingIngredient(false);
+            }
         }
     };
 
@@ -124,9 +161,14 @@ export default function ManualEntry() {
                         <View key={ingredient.id} style={styles.ingredientItem}>
                             <View style={styles.ingredientInfo}>
                                 <Text style={styles.ingredientName}>{ingredient.name}</Text>
-                                {ingredient.quantity && (
-                                    <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>
-                                )}
+                                <View style={styles.ingredientMeta}>
+                                    {ingredient.quantity && (
+                                        <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>
+                                    )}
+                                    {ingredient.category && (
+                                        <Text style={styles.ingredientCategory}>• {ingredient.category}</Text>
+                                    )}
+                                </View>
                             </View>
                             <View style={styles.ingredientActions}>
                                 <TouchableOpacity 
@@ -155,6 +197,7 @@ export default function ManualEntry() {
                                 key={index}
                                 style={[styles.quickAddChip, { backgroundColor: item.color }]}
                                 onPress={() => handleAddIngredient(item.name)}
+                                disabled={isCategorizingIngredient}
                             >
                                 <Text style={styles.quickAddText}>{item.name}</Text>
                                 <Text style={styles.quickAddPlus}>+</Text>
@@ -167,19 +210,30 @@ export default function ManualEntry() {
                 <View style={styles.section}>
                     <View style={styles.addNewContainer}>
                         <TextInput
-                            style={styles.addNewInput}
+                            style={[styles.addNewInput, isCategorizingIngredient && styles.inputDisabled]}
                             placeholder="Add new ingredient..."
                             value={newIngredient}
                             onChangeText={setNewIngredient}
                             onSubmitEditing={() => handleAddIngredient(newIngredient)}
+                            editable={!isCategorizingIngredient}
                         />
                         <TouchableOpacity 
-                            style={styles.addNewButton}
+                            style={[styles.addNewButton, isCategorizingIngredient && styles.buttonDisabled]}
                             onPress={() => handleAddIngredient(newIngredient)}
+                            disabled={isCategorizingIngredient}
                         >
-                            <Text style={styles.addNewButtonText}>+</Text>
+                            {isCategorizingIngredient ? (
+                                <ActivityIndicator size="small" color={colors.white} />
+                            ) : (
+                                <Text style={styles.addNewButtonText}>+</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
+                    {isCategorizingIngredient && (
+                        <Text style={styles.categorizingText}>
+                            Categorizing ingredient with AI...
+                        </Text>
+                    )}
                 </View>
             </ScrollView>
 
@@ -277,6 +331,17 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textMuted,
     },
+    ingredientMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
+    ingredientCategory: {
+        fontSize: 12,
+        color: colors.accent,
+        fontWeight: '500',
+        marginLeft: 4,
+    },
     ingredientActions: {
         flexDirection: "row",
         gap: 8,
@@ -351,5 +416,19 @@ const styles = StyleSheet.create({
         color: colors.white,
         fontSize: 16,
         fontWeight: "600",
+    },
+    inputDisabled: {
+        backgroundColor: colors.neutral100,
+        color: colors.textMuted,
+    },
+    buttonDisabled: {
+        backgroundColor: colors.textMuted,
+    },
+    categorizingText: {
+        textAlign: 'center',
+        marginTop: 8,
+        fontSize: 14,
+        color: colors.textMuted,
+        fontStyle: 'italic',
     },
 });

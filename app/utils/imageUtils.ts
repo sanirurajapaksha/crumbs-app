@@ -1,6 +1,35 @@
 /**
  * Utility functions for generating and managing food item images
  */
+import { EncodingType, getInfoAsync, readAsStringAsync } from 'expo-file-system/legacy';
+
+/**
+ * Converts an image URI to base64 string
+ * @param imageUri - The local URI of the image
+ * @returns Base64 string representation of the image
+ */
+export const convertImageToBase64 = async (imageUri: string): Promise<string> => {
+    try {
+        console.log('Converting image to base64:', imageUri);
+        
+        // Check if file exists
+        const fileInfo = await getInfoAsync(imageUri);
+        if (!fileInfo.exists) {
+            throw new Error(`Image file does not exist at URI: ${imageUri}`);
+        }
+        
+        const base64 = await readAsStringAsync(imageUri, {
+            encoding: EncodingType.Base64,
+        });
+        
+        console.log('Base64 conversion successful, length:', base64.length);
+        return base64;
+    } catch (error) {
+        console.error('Error converting image to base64:', error);
+        console.error('Image URI:', imageUri);
+        throw new Error(`Failed to convert image to base64: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+};
 
 /**
  * Generates a Pollinations.ai image URL for a food item
