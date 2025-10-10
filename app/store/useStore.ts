@@ -94,7 +94,6 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             router.replace("/screens/Auth/LoginScreen");
         }
     },
-<<<<<<< HEAD
     deleteAccount: async (password: string) => {
         set({ authLoading: true });
         try {
@@ -110,12 +109,6 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             });
             // Redirect to login
             router.replace("/screens/Auth/LoginScreen");
-=======
-    resetPassword: async (email: string) => {
-        set({ authLoading: true });
-        try {
-            await sendPasswordReset(email);
->>>>>>> 78dfe7eaacb2b7088d4981717363d0c552d43386
         } finally {
             set({ authLoading: false });
         }
