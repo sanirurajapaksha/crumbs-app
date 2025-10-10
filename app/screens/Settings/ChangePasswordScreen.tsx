@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    Alert,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-} from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -18,15 +8,15 @@ import { useStore, StoreState } from "../../store/useStore";
 
 export default function ChangePasswordScreen() {
     const user = useStore((s: StoreState) => s.user);
-    
+
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    
+
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    
+
     const [loading, setLoading] = useState(false);
 
     // Password validation
@@ -48,13 +38,13 @@ export default function ChangePasswordScreen() {
 
     const getPasswordStrength = (password: string): "weak" | "medium" | "strong" => {
         if (password.length < 8) return "weak";
-        
+
         let strength = 0;
         if (/[A-Z]/.test(password)) strength++;
         if (/[a-z]/.test(password)) strength++;
         if (/[0-9]/.test(password)) strength++;
         if (/[^A-Za-z0-9]/.test(password)) strength++;
-        
+
         if (strength <= 2) return "weak";
         if (strength === 3) return "medium";
         return "strong";
@@ -62,9 +52,12 @@ export default function ChangePasswordScreen() {
 
     const getPasswordStrengthColor = (strength: "weak" | "medium" | "strong") => {
         switch (strength) {
-            case "weak": return colors.danger;
-            case "medium": return "#FFA726";
-            case "strong": return "#4CAF50";
+            case "weak":
+                return colors.danger;
+            case "medium":
+                return "#FFA726";
+            case "strong":
+                return "#4CAF50";
         }
     };
 
@@ -74,35 +67,27 @@ export default function ChangePasswordScreen() {
             return;
         }
 
-        Alert.alert(
-            "Reset Password",
-            `A password reset link will be sent to ${user.email}. Continue?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Send Link",
-                    onPress: async () => {
-                        try {
-                            await sendPasswordReset(user.email);
-                            Alert.alert(
-                                "Email Sent",
-                                "A password reset link has been sent to your email. Please check your inbox.",
-                                [
-                                    {
-                                        text: "OK",
-                                        onPress: () => {
-                                            router.back();
-                                        }
-                                    }
-                                ]
-                            );
-                        } catch (error: any) {
-                            Alert.alert("Error", error.message || "Failed to send password reset email");
-                        }
+        Alert.alert("Reset Password", `A password reset link will be sent to ${user.email}. Continue?`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Send Link",
+                onPress: async () => {
+                    try {
+                        await sendPasswordReset(user.email);
+                        Alert.alert("Email Sent", "A password reset link has been sent to your email. Please check your inbox.", [
+                            {
+                                text: "OK",
+                                onPress: () => {
+                                    router.back();
+                                },
+                            },
+                        ]);
+                    } catch (error: any) {
+                        Alert.alert("Error", error.message || "Failed to send password reset email");
                     }
-                }
-            ]
-        );
+                },
+            },
+        ]);
     };
 
     const handleChangePassword = async () => {
@@ -134,22 +119,18 @@ export default function ChangePasswordScreen() {
             // Call Firebase to change password
             await changePassword(currentPassword, newPassword);
 
-            Alert.alert(
-                "Success",
-                "Your password has been changed successfully. Please use your new password for future logins.",
-                [
-                    {
-                        text: "OK",
-                        onPress: () => {
-                            // Clear form
-                            setCurrentPassword("");
-                            setNewPassword("");
-                            setConfirmPassword("");
-                            router.back();
-                        }
-                    }
-                ]
-            );
+            Alert.alert("Success", "Your password has been changed successfully. Please use your new password for future logins.", [
+                {
+                    text: "OK",
+                    onPress: () => {
+                        // Clear form
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        router.back();
+                    },
+                },
+            ]);
         } catch (error: any) {
             // Error messages are already mapped in auth.ts
             Alert.alert("Error", error.message || "Failed to change password. Please try again.");
@@ -161,10 +142,7 @@ export default function ChangePasswordScreen() {
     const passwordStrength = newPassword ? getPasswordStrength(newPassword) : null;
 
     return (
-        <KeyboardAvoidingView 
-            style={styles.container} 
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
@@ -174,10 +152,7 @@ export default function ChangePasswordScreen() {
                 <View style={{ width: 24 }} />
             </View>
 
-            <ScrollView 
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Info Card */}
                 <View style={styles.infoCard}>
                     <Ionicons name="information-circle" size={24} color={colors.accent} />
@@ -200,15 +175,8 @@ export default function ChangePasswordScreen() {
                             autoCapitalize="none"
                             autoCorrect={false}
                         />
-                        <TouchableOpacity
-                            style={styles.eyeButton}
-                            onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                        >
-                            <Ionicons
-                                name={showCurrentPassword ? "eye-off-outline" : "eye-outline"}
-                                size={22}
-                                color={colors.neutral600}
-                            />
+                        <TouchableOpacity style={styles.eyeButton} onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                            <Ionicons name={showCurrentPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral600} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -227,18 +195,11 @@ export default function ChangePasswordScreen() {
                             autoCapitalize="none"
                             autoCorrect={false}
                         />
-                        <TouchableOpacity
-                            style={styles.eyeButton}
-                            onPress={() => setShowNewPassword(!showNewPassword)}
-                        >
-                            <Ionicons
-                                name={showNewPassword ? "eye-off-outline" : "eye-outline"}
-                                size={22}
-                                color={colors.neutral600}
-                            />
+                        <TouchableOpacity style={styles.eyeButton} onPress={() => setShowNewPassword(!showNewPassword)}>
+                            <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral600} />
                         </TouchableOpacity>
                     </View>
-                    
+
                     {/* Password Strength Indicator */}
                     {newPassword.length > 0 && passwordStrength && (
                         <View style={styles.strengthContainer}>
@@ -274,18 +235,11 @@ export default function ChangePasswordScreen() {
                             autoCapitalize="none"
                             autoCorrect={false}
                         />
-                        <TouchableOpacity
-                            style={styles.eyeButton}
-                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                            <Ionicons
-                                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                                size={22}
-                                color={colors.neutral600}
-                            />
+                        <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                            <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral600} />
                         </TouchableOpacity>
                     </View>
-                    
+
                     {/* Match Indicator */}
                     {confirmPassword.length > 0 && (
                         <View style={styles.matchContainer}>
@@ -294,10 +248,7 @@ export default function ChangePasswordScreen() {
                                 size={16}
                                 color={newPassword === confirmPassword ? "#4CAF50" : colors.danger}
                             />
-                            <Text style={[
-                                styles.matchText,
-                                { color: newPassword === confirmPassword ? "#4CAF50" : colors.danger }
-                            ]}>
+                            <Text style={[styles.matchText, { color: newPassword === confirmPassword ? "#4CAF50" : colors.danger }]}>
                                 {newPassword === confirmPassword ? "Passwords match" : "Passwords do not match"}
                             </Text>
                         </View>
@@ -308,34 +259,34 @@ export default function ChangePasswordScreen() {
                 <View style={styles.requirementsContainer}>
                     <Text style={styles.requirementsTitle}>Password Requirements:</Text>
                     <View style={styles.requirementItem}>
-                        <Ionicons 
-                            name={newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
-                            size={16} 
-                            color={newPassword.length >= 8 ? "#4CAF50" : colors.neutral500} 
+                        <Ionicons
+                            name={newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"}
+                            size={16}
+                            color={newPassword.length >= 8 ? "#4CAF50" : colors.neutral500}
                         />
                         <Text style={styles.requirementText}>At least 8 characters</Text>
                     </View>
                     <View style={styles.requirementItem}>
-                        <Ionicons 
-                            name={/[A-Z]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                            size={16} 
-                            color={/[A-Z]/.test(newPassword) ? "#4CAF50" : colors.neutral500} 
+                        <Ionicons
+                            name={/[A-Z]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                            size={16}
+                            color={/[A-Z]/.test(newPassword) ? "#4CAF50" : colors.neutral500}
                         />
                         <Text style={styles.requirementText}>One uppercase letter</Text>
                     </View>
                     <View style={styles.requirementItem}>
-                        <Ionicons 
-                            name={/[a-z]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                            size={16} 
-                            color={/[a-z]/.test(newPassword) ? "#4CAF50" : colors.neutral500} 
+                        <Ionicons
+                            name={/[a-z]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                            size={16}
+                            color={/[a-z]/.test(newPassword) ? "#4CAF50" : colors.neutral500}
                         />
                         <Text style={styles.requirementText}>One lowercase letter</Text>
                     </View>
                     <View style={styles.requirementItem}>
-                        <Ionicons 
-                            name={/[0-9]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                            size={16} 
-                            color={/[0-9]/.test(newPassword) ? "#4CAF50" : colors.neutral500} 
+                        <Ionicons
+                            name={/[0-9]/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                            size={16}
+                            color={/[0-9]/.test(newPassword) ? "#4CAF50" : colors.neutral500}
                         />
                         <Text style={styles.requirementText}>One number</Text>
                     </View>
@@ -358,10 +309,7 @@ export default function ChangePasswordScreen() {
                 </TouchableOpacity>
 
                 {/* Forgot Password Link */}
-                <TouchableOpacity 
-                    style={styles.forgotPasswordButton}
-                    onPress={handleForgotPassword}
-                >
+                <TouchableOpacity style={styles.forgotPasswordButton} onPress={handleForgotPassword}>
                     <Text style={styles.forgotPasswordText}>Forgot your current password?</Text>
                 </TouchableOpacity>
             </ScrollView>
@@ -372,7 +320,7 @@ export default function ChangePasswordScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: colors.neutral100,
     },
     header: {
         flexDirection: "row",

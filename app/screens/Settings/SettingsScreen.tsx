@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    Alert,
-    ScrollView,
-    Switch,
-    TextInput,
-    Modal,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Switch, TextInput, Modal } from "react-native";
 import { useStore, StoreState } from "../../store/useStore";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,20 +14,8 @@ type SettingItemProps = {
     showChevron?: boolean;
 };
 
-const SettingItem: React.FC<SettingItemProps> = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    rightElement,
-    showChevron = true,
-}) => (
-    <TouchableOpacity
-        style={styles.settingItem}
-        onPress={onPress}
-        disabled={!onPress}
-        activeOpacity={onPress ? 0.6 : 1}
-    >
+const SettingItem: React.FC<SettingItemProps> = ({ icon, title, subtitle, onPress, rightElement, showChevron = true }) => (
+    <TouchableOpacity style={styles.settingItem} onPress={onPress} disabled={!onPress} activeOpacity={onPress ? 0.6 : 1}>
         <View style={styles.settingLeft}>
             <View style={styles.iconContainer}>
                 <Ionicons name={icon} size={20} color={colors.accent} />
@@ -49,16 +27,12 @@ const SettingItem: React.FC<SettingItemProps> = ({
         </View>
         <View style={styles.settingRight}>
             {rightElement}
-            {showChevron && onPress && (
-                <Ionicons name="chevron-forward" size={20} color={colors.neutral500} />
-            )}
+            {showChevron && onPress && <Ionicons name="chevron-forward" size={20} color={colors.neutral500} />}
         </View>
     </TouchableOpacity>
 );
 
-const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
-    <Text style={styles.sectionHeader}>{title}</Text>
-);
+const SectionHeader: React.FC<{ title: string }> = ({ title }) => <Text style={styles.sectionHeader}>{title}</Text>;
 
 export default function SettingsScreen() {
     const user = useStore((s: StoreState) => s.user);
@@ -78,59 +52,47 @@ export default function SettingsScreen() {
     const [editBio, setEditBio] = useState(user?.bio || "");
 
     const handleLogout = async () => {
-        Alert.alert(
-            "Logout",
-            "Are you sure you want to logout?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Logout",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await signOut();
-                        } catch (e: any) {
-                            Alert.alert("Logout failed", e?.message || String(e));
-                        }
-                    },
+        Alert.alert("Logout", "Are you sure you want to logout?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Logout",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        await signOut();
+                    } catch (e: any) {
+                        Alert.alert("Logout failed", e?.message || String(e));
+                    }
                 },
-            ]
-        );
+            },
+        ]);
     };
 
     const handleClearPantry = () => {
-        Alert.alert(
-            "Clear Pantry",
-            "Are you sure you want to remove all items from your pantry?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Clear",
-                    style: "destructive",
-                    onPress: () => {
-                        clearPantry();
-                        Alert.alert("Success", "Your pantry has been cleared");
-                    },
+        Alert.alert("Clear Pantry", "Are you sure you want to remove all items from your pantry?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Clear",
+                style: "destructive",
+                onPress: () => {
+                    clearPantry();
+                    Alert.alert("Success", "Your pantry has been cleared");
                 },
-            ]
-        );
+            },
+        ]);
     };
 
     const handleDeleteAccount = () => {
-        Alert.alert(
-            "Delete Account",
-            "This action cannot be undone. All your data will be permanently deleted.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                        Alert.alert("Info", "Account deletion feature coming soon");
-                    },
+        Alert.alert("Delete Account", "This action cannot be undone. All your data will be permanently deleted.", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => {
+                    Alert.alert("Info", "Account deletion feature coming soon");
                 },
-            ]
-        );
+            },
+        ]);
     };
 
     const handleSaveProfile = () => {
@@ -160,11 +122,7 @@ export default function SettingsScreen() {
                         subtitle={user?.email || "Update your profile information"}
                         onPress={() => setShowEditProfile(true)}
                     />
-                    <SettingItem
-                        icon="key-outline"
-                        title="Change Password"
-                        onPress={() => router.push("/screens/Settings/ChangePasswordScreen")}
-                    />
+                    <SettingItem icon="key-outline" title="Change Password" onPress={() => router.push("./ChangePasswordScreen")} />
                 </View>
 
                 {/* Preferences Section */}
@@ -280,11 +238,7 @@ export default function SettingsScreen() {
                         subtitle="Get help from our team"
                         onPress={() => Alert.alert("Info", "Contact support feature coming soon")}
                     />
-                    <SettingItem
-                        icon="star-outline"
-                        title="Rate the App"
-                        onPress={() => Alert.alert("Info", "Rate app feature coming soon")}
-                    />
+                    <SettingItem icon="star-outline" title="Rate the App" onPress={() => Alert.alert("Info", "Rate app feature coming soon")} />
                     <SettingItem
                         icon="share-social-outline"
                         title="Share with Friends"
@@ -295,12 +249,7 @@ export default function SettingsScreen() {
                 {/* About Section */}
                 <SectionHeader title="ABOUT" />
                 <View style={styles.section}>
-                    <SettingItem
-                        icon="information-circle-outline"
-                        title="Version"
-                        subtitle="1.0.0"
-                        showChevron={false}
-                    />
+                    <SettingItem icon="information-circle-outline" title="Version" subtitle="1.0.0" showChevron={false} />
                     <SettingItem
                         icon="code-slash-outline"
                         title="Licenses"
@@ -313,9 +262,7 @@ export default function SettingsScreen() {
                 <View style={styles.section}>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={authLoading}>
                         <Ionicons name="log-out-outline" size={20} color={colors.white} />
-                        <Text style={styles.logoutText}>
-                            {authLoading ? "Logging out..." : "Logout"}
-                        </Text>
+                        <Text style={styles.logoutText}>{authLoading ? "Logging out..." : "Logout"}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
                         <Ionicons name="trash-outline" size={20} color={colors.white} />
@@ -327,12 +274,7 @@ export default function SettingsScreen() {
             </ScrollView>
 
             {/* Edit Profile Modal */}
-            <Modal
-                visible={showEditProfile}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowEditProfile(false)}
-            >
+            <Modal visible={showEditProfile} animationType="slide" transparent={true} onRequestClose={() => setShowEditProfile(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
