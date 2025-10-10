@@ -1,8 +1,8 @@
 import { Stack } from "expo-router";
 import React, { useEffect } from "react";
-import { useAsyncSeed } from "./hooks/useAsyncSeed";
-import { useStore, StoreState } from "./store/useStore";
 import { ActivityIndicator, View } from "react-native";
+import { useAsyncSeed } from "./hooks/useAsyncSeed";
+import { StoreState, useStore } from "./store/useStore";
 
 export default function RootLayout() {
     useAsyncSeed();
@@ -32,6 +32,7 @@ export default function RootLayout() {
             {/* Feature Flows */}
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="screens/Pantry/PantryInput" />
+            <Stack.Screen name="screens/Pantry/CameraScreen" />
             <Stack.Screen name="screens/Pantry/ManualEntry" />
             <Stack.Screen name="screens/Pantry/PantryManage" />
             <Stack.Screen name="screens/Recipe/RecipeDetail" />

@@ -3,7 +3,7 @@
 // TODO: Replace generateRecipeFromPantry with Gemini + Vision powered generation.
 // TODO: Replace in-memory community post handling with real backend / Firebase Firestore.
 
-import { PantryItem, Recipe, CommunityPost, GenerateOptions } from "../types";
+import { CommunityPost, GenerateOptions, PantryItem, Recipe } from "../types";
 
 let communityPosts: CommunityPost[] = [];
 let pantrySeed: PantryItem[] = [];
@@ -88,10 +88,67 @@ export function seedMockData() {
         ];
     }
     if (pantrySeed.length === 0) {
+        const today = new Date();
         pantrySeed = [
-            { id: "p1", name: "Quinoa", quantity: "1 cup" },
-            { id: "p2", name: "Chickpeas", quantity: "1 can" },
-            { id: "p3", name: "Spinach", quantity: "2 cups" },
+            // Vegetables
+            { 
+                id: "p1", 
+                name: "Broccoli", 
+                quantity: "1 head", 
+                category: "vegetables",
+                expiryDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days
+            },
+            { 
+                id: "p2", 
+                name: "Carrots", 
+                quantity: "2 lbs", 
+                category: "vegetables",
+                expiryDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days
+            },
+            { 
+                id: "p3", 
+                name: "Spinach", 
+                quantity: "1 lb", 
+                category: "vegetables",
+                expiryDate: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day (expiring)
+            },
+            // Fruits
+            { 
+                id: "p4", 
+                name: "Apples", 
+                quantity: "6", 
+                category: "fruits",
+                expiryDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+            },
+            { 
+                id: "p5", 
+                name: "Bananas", 
+                quantity: "1 bunch", 
+                category: "fruits",
+                expiryDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString() // expired
+            },
+            { 
+                id: "p6", 
+                name: "Blueberries", 
+                quantity: "1 pint", 
+                category: "fruits",
+                expiryDate: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days
+            },
+            // Dairy & Eggs
+            { 
+                id: "p7", 
+                name: "Eggs", 
+                quantity: "1 dozen", 
+                category: "dairy & eggs",
+                expiryDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days
+            },
+            { 
+                id: "p8", 
+                name: "Milk", 
+                quantity: "1 gallon", 
+                category: "dairy & eggs",
+                expiryDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days (expiring)
+            },
         ];
     }
     return { pantry: pantrySeed, posts: communityPosts };
