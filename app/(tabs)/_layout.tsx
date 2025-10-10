@@ -23,7 +23,8 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="community"
+                name="favorites"
+                // above is just a placeholder name. The recipe generation screen should be here.
                 options={{
                     title: "Generate",
                     tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
@@ -37,7 +38,7 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="favorites"
+                name="community"
                 options={{
                     title: "Community",
                     tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
