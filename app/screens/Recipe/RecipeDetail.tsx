@@ -1,9 +1,11 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import { Link, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { useLocalSearchParams, Link } from "expo-router";
-import { useStore, StoreState } from "../../store/useStore";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MacroStrip } from "../../components/MacroStrip";
 import { ModalSheet } from "../../components/ModalSheet";
+import { StoreState, useStore } from "../../store/useStore";
+import { colors } from "../../theme/colors";
 import { Recipe } from "../../types";
 
 export default function RecipeDetail() {
@@ -65,7 +67,11 @@ export default function RecipeDetail() {
                 <View style={styles.headerRow}>
                     <Text style={styles.title}>{recipe.title}</Text>
                     <TouchableOpacity onPress={toggleFavorite}>
-                        <Text style={{ fontSize: 24 }}>{isFav ? "★" : "☆"}</Text>
+                        <MaterialIcons 
+                            name={isFav ? "star" : "star-border"} 
+                            size={24} 
+                            color={isFav ? "#FFD700" : colors.textMuted} 
+                        />
                     </TouchableOpacity>
                 </View>
                 <MacroStrip recipe={recipe} />

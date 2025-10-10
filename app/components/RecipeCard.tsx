@@ -1,5 +1,6 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Recipe } from "../types";
 
 export const RecipeCard: React.FC<{ recipe: Recipe; onPress?: () => void; isFavorite?: boolean }> = ({ recipe, onPress, isFavorite }) => {
@@ -12,7 +13,12 @@ export const RecipeCard: React.FC<{ recipe: Recipe; onPress?: () => void; isFavo
                     {recipe.cookTimeMin ? `${recipe.cookTimeMin} min • ` : ""}
                     {recipe.protein_g ? `${recipe.protein_g}g P` : ""}
                 </Text>
-                {isFavorite && <Text style={styles.badge}>★ Favorite</Text>}
+                {isFavorite && (
+                    <View style={styles.badge}>
+                        <MaterialIcons name="star" size={11} color="#0a7" />
+                        <Text style={styles.badgeText}>Favorite</Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -32,7 +38,16 @@ const styles = StyleSheet.create({
     body: { padding: 12 },
     title: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
     meta: { fontSize: 12, color: "#555" },
-    badge: { marginTop: 6, fontSize: 11, color: "#0a7" },
+    badge: { 
+        marginTop: 6, 
+        flexDirection: "row", 
+        alignItems: "center", 
+        gap: 2 
+    },
+    badgeText: { 
+        fontSize: 11, 
+        color: "#0a7" 
+    },
 });
 
 export default RecipeCard;

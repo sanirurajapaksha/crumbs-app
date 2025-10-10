@@ -81,7 +81,7 @@ export function seedMockData() {
             {
                 id: "seed-2",
                 authorId: "demo-user2",
-                text: "Love pantry cooking 💚",
+                text: "Love pantry cooking",
                 tags: ["pantry"],
                 createdAt: new Date(Date.now() - 3600_000).toISOString(),
                 likeCount: 2,

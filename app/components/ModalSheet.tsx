@@ -1,5 +1,7 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { colors } from "../theme/colors";
 
 interface ModalSheetProps {
     visible: boolean;
@@ -15,7 +17,7 @@ export const ModalSheet: React.FC<ModalSheetProps> = ({ visible, onClose, title,
                     <View style={styles.header}>
                         <Text style={styles.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Text style={styles.close}>✕</Text>
+                            <MaterialIcons name="close" size={18} color={colors.textMuted} />
                         </TouchableOpacity>
                     </View>
                     {children}
@@ -30,7 +32,6 @@ const styles = StyleSheet.create({
     sheet: { backgroundColor: "#fff", padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "80%" },
     header: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
     title: { flex: 1, fontWeight: "600", fontSize: 16 },
-    close: { fontSize: 18 },
 });
 
 export default ModalSheet;

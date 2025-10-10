@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -97,7 +98,7 @@ const PantryItemImage: React.FC<PantryItemImageProps> = ({ item, onImageError })
             )}
             {error ? (
                 <TouchableOpacity style={styles.imageFallback} onPress={handleRetry}>
-                    <Text style={styles.imageFallbackEmoji}>🍽️</Text>
+                    <MaterialIcons name="restaurant" size={20} color={colors.textMuted} />
                     <Text style={styles.imageFallbackText}>Tap to retry</Text>
                 </TouchableOpacity>
             ) : (
@@ -140,7 +141,7 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
                 style={styles.editButton}
                 onPress={() => onEdit(item)}
             >
-                <Text style={styles.editButtonText}>✏️</Text>
+                <MaterialIcons name="edit" size={16} color={colors.textMuted} />
             </TouchableOpacity>
         </View>
     );
@@ -369,9 +370,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginLeft: 8,
     },
-    editButtonText: {
-        fontSize: 16,
-    },
     emptyState: {
         alignItems: "center",
         paddingVertical: 60,
@@ -416,14 +414,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    imageFallbackEmoji: {
-        fontSize: 20,
-        marginBottom: 2,
-    },
     imageFallbackText: {
         fontSize: 8,
         color: colors.textMuted,
         textAlign: "center",
         fontWeight: "500",
+        marginTop: 2,
     },
 });

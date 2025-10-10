@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useStore } from "../../store/useStore";
 
 export default function ShoppingList() {
@@ -31,7 +32,11 @@ export default function ShoppingList() {
                 contentContainerStyle={{ padding: 16 }}
                 renderItem={({ item }) => (
                     <TouchableOpacity style={styles.row} onPress={() => toggle(item.name)}>
-                        <Text style={[styles.box, checked[item.name] && styles.boxChecked]}>{checked[item.name] ? "✓" : ""}</Text>
+                        <View style={[styles.box, checked[item.name] && styles.boxChecked]}>
+                            {checked[item.name] && (
+                                <MaterialIcons name="check" size={16} color="#fff" />
+                            )}
+                        </View>
                         <Text style={styles.ing}>
                             {item.name} {item.qty && <Text style={styles.qty}>{item.qty}</Text>}
                         </Text>
@@ -45,8 +50,17 @@ export default function ShoppingList() {
 const styles = StyleSheet.create({
     center: { flex: 1, alignItems: "center", justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-    box: { width: 24, height: 24, borderWidth: 1, borderColor: "#444", marginRight: 12, textAlign: "center", textAlignVertical: "center" },
-    boxChecked: { backgroundColor: "#0a7", color: "#fff", borderColor: "#0a7" },
+    box: { 
+        width: 24, 
+        height: 24, 
+        borderWidth: 1, 
+        borderColor: "#444", 
+        marginRight: 12, 
+        justifyContent: "center", 
+        alignItems: "center",
+        borderRadius: 4,
+    },
+    boxChecked: { backgroundColor: "#0a7", borderColor: "#0a7" },
     ing: { fontSize: 14, flex: 1 },
     qty: { fontSize: 12, color: "#555" },
 });

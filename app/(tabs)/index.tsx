@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useStore, StoreState } from "../store/useStore";
+import React, { useState } from "react";
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { Recipe } from "../types";
 
@@ -100,7 +101,10 @@ export default function HomeScreen() {
                             <View style={styles.recipeInfo}>
                                 <Text style={styles.recipeTitle}>{recipe.title}</Text>
                                 <View style={styles.recipeMeta}>
-                                    <Text style={styles.metaText}>⏱ {recipe.cookTimeMin} min</Text>
+                                    <View style={styles.metaItem}>
+                                        <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                        <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
+                                    </View>
                                     {recipe.timingTag && (
                                         <View style={styles.tag}>
                                             <Text style={styles.tagText}>{recipe.timingTag}</Text>
@@ -132,8 +136,14 @@ export default function HomeScreen() {
                                         : "Juicy chicken with lemon and veggies, all on one pan."}
                                 </Text>
                                 <View style={styles.recipeMeta}>
-                                    <Text style={styles.metaText}>⏱ {recipe.cookTimeMin} min</Text>
-                                    <Text style={styles.metaText}>⭐ 4.9 (124)</Text>
+                                    <View style={styles.metaItem}>
+                                        <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                        <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
+                                    </View>
+                                    <View style={styles.metaItem}>
+                                        <MaterialIcons name="star" size={14} color={colors.textMuted} />
+                                        <Text style={styles.metaText}>4.9 (124)</Text>
+                                    </View>
                                 </View>
                             </View>
                         </TouchableOpacity>
@@ -147,7 +157,7 @@ export default function HomeScreen() {
 
             {/* Floating Generate Recipe Button */}
             <TouchableOpacity style={styles.floatingButton} onPress={handleGenerateRecipe}>
-                <Text style={styles.floatingIcon}>✨</Text>
+                <MaterialIcons name="auto-awesome" size={22} color={colors.white} />
                 <Text style={styles.floatingText}>Generate Recipe</Text>
             </TouchableOpacity>
             
@@ -239,6 +249,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
     },
+    metaItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
     metaText: {
         fontSize: 14,
         color: colors.textMuted,
@@ -270,10 +285,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,
-    },
-    floatingIcon: {
-        fontSize: 22,
-        marginRight: 10,
+        gap: 10,
     },
     floatingText: {
         fontSize: 18,

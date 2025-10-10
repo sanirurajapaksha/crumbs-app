@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -132,13 +133,13 @@ export default function ManualEntry() {
                                     onPress={() => handleEditIngredient(ingredient.id)}
                                     style={styles.actionButton}
                                 >
-                                    <Text style={styles.actionIcon}>✏️</Text>
+                                    <MaterialIcons name="edit" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     onPress={() => handleDeleteIngredient(ingredient.id)}
                                     style={styles.actionButton}
                                 >
-                                    <Text style={styles.actionIcon}>🗑️</Text>
+                                    <MaterialIcons name="delete" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -285,9 +286,6 @@ const styles = StyleSheet.create({
         height: 32,
         justifyContent: "center",
         alignItems: "center",
-    },
-    actionIcon: {
-        fontSize: 16,
     },
     quickAddContainer: {
         flexDirection: "row",
