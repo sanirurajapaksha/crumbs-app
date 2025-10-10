@@ -1,7 +1,7 @@
 import { create, StateCreator } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, PantryItem, Recipe, CommunityPost } from "../types";
+import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
 import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
@@ -11,7 +11,10 @@ export interface StoreState {
     authLoading?: boolean;
     pantryItems: PantryItem[];
     favorites: Recipe[];
+    myRecipes: Recipe[];
+    likedPosts: CommunityPost[];
     communityPosts: CommunityPost[];
+    notifications: Notification[];
     hasOnboarded?: boolean;
     // actions
     setUser: (u: User) => void;
@@ -27,10 +30,19 @@ export interface StoreState {
     clearPantry: () => void;
     saveFavorite: (recipe: Recipe) => void;
     removeFavorite: (id: string) => void;
+    saveMyRecipe: (recipe: Recipe) => void;
+    removeMyRecipe: (id: string) => void;
+    likePost: (post: CommunityPost) => void;
+    unlikePost: (id: string) => void;
     loadPosts: () => Promise<void>;
     postCommunity: (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => Promise<CommunityPost>;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     setHasOnboarded: () => void;
+    // notification actions
+    markNotificationAsRead: (id: string) => void;
+    markAllNotificationsAsRead: () => void;
+    clearAllNotifications: () => void;
+    addNotification: (notification: Notification) => void;
 }
 
 let unsubscribeAuth: (() => void) | null = null;
@@ -39,7 +51,10 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     user: null,
     pantryItems: [],
     favorites: [],
+    myRecipes: [],
+    likedPosts: [],
     communityPosts: [],
+    notifications: [],
     hasOnboarded: false,
     authLoading: false,
     setUser: (u: User) => set({ user: u }),
@@ -94,6 +109,16 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         if (!exists) set({ favorites: [...get().favorites, recipe] });
     },
     removeFavorite: (id: string) => set({ favorites: get().favorites.filter((r: Recipe) => r.id !== id) }),
+    saveMyRecipe: (recipe: Recipe) => {
+        const exists = get().myRecipes.some((r: Recipe) => r.id === recipe.id);
+        if (!exists) set({ myRecipes: [...get().myRecipes, recipe] });
+    },
+    removeMyRecipe: (id: string) => set({ myRecipes: get().myRecipes.filter((r: Recipe) => r.id !== id) }),
+    likePost: (post: CommunityPost) => {
+        const exists = get().likedPosts.some((p: CommunityPost) => p.id === post.id);
+        if (!exists) set({ likedPosts: [...get().likedPosts, post] });
+    },
+    unlikePost: (id: string) => set({ likedPosts: get().likedPosts.filter((p: CommunityPost) => p.id !== id) }),
     loadPosts: async () => {
         const posts = await getCommunityPosts();
         set({ communityPosts: posts });
@@ -107,6 +132,25 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         return generateRecipeFromPantry(pantry, options);
     },
     setHasOnboarded: () => set({ hasOnboarded: true }),
+    // Notification actions
+    markNotificationAsRead: (id: string) => {
+        set({ 
+            notifications: get().notifications.map((n: Notification) => 
+                n.id === id ? { ...n, read: true } : n
+            ) 
+        });
+    },
+    markAllNotificationsAsRead: () => {
+        set({ 
+            notifications: get().notifications.map((n: Notification) => ({ ...n, read: true })) 
+        });
+    },
+    clearAllNotifications: () => {
+        set({ notifications: [] });
+    },
+    addNotification: (notification: Notification) => {
+        set({ notifications: [notification, ...get().notifications] });
+    },
 });
 
 export const useStore = create<StoreState>()(
@@ -117,6 +161,9 @@ export const useStore = create<StoreState>()(
         partialize: (state: StoreState) => ({
             pantryItems: state.pantryItems,
             favorites: state.favorites,
+            myRecipes: state.myRecipes,
+            likedPosts: state.likedPosts,
+            notifications: state.notifications,
             user: state.user,
             hasOnboarded: state.hasOnboarded,
         }),
