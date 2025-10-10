@@ -43,6 +43,17 @@ export default function LoginScreen() {
                         value={password}
                         onChangeText={setPassword}
                     />
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (!email.trim()) return Alert.alert("Email required", "Enter your email to reset password.");
+                            const reset = useStore.getState().resetPassword;
+                            reset?.(email.trim())
+                                .then(() => Alert.alert("Reset email sent", "Check your inbox for reset instructions."))
+                                .catch((e: any) => Alert.alert("Reset failed", e?.message || String(e)));
+                        }}
+                    >
+                        <Text style={styles.forgotLink}>Forgot password?</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity style={[styles.primaryBtn, authLoading && { opacity: 0.7 }]} onPress={handleLogin} disabled={!!authLoading}>
                         <Text style={styles.primaryTxt}>{authLoading ? "Loading" : "Log In"}</Text>
                     </TouchableOpacity>
@@ -71,12 +82,6 @@ export default function LoginScreen() {
                             <Text style={styles.socialText}>Continue with Apple</Text>
                         </View>
                     </TouchableOpacity>
-                    <View style={{ height: 32 }} />
-                    <Link href={"/screens/Auth/DemoLogin" as any} replace asChild>
-                        <TouchableOpacity>
-                            <Text style={styles.demoLink}>Use Demo Account</Text>
-                        </TouchableOpacity>
-                    </Link>
                 </View>
             </View>
         </View>
@@ -123,4 +128,5 @@ const styles = StyleSheet.create({
     socialIcon: { width: 22, height: 22, resizeMode: "contain", marginRight: 12 },
     socialText: { fontSize: 13, fontWeight: "500", color: colors.textPrimary },
     demoLink: { textAlign: "center", fontSize: 12, color: colors.success, fontWeight: "500" },
+    forgotLink: { alignSelf: "flex-end", marginBottom: 8, color: colors.accent, fontSize: 12, fontWeight: "600" },
 });
