@@ -2,7 +2,14 @@ import { create, StateCreator } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
-import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth, deleteAccount as fbDeleteAccount, sendPasswordReset } from "../api/auth";
+import {
+    loginWithEmail,
+    logout as fbLogout,
+    signupWithEmail,
+    subscribeToAuth,
+    deleteAccount as fbDeleteAccount,
+    sendPasswordReset,
+} from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
 
@@ -99,7 +106,7 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         try {
             await fbDeleteAccount(password);
             // Clear all user data from store
-            set({ 
+            set({
                 user: null,
                 pantryItems: [],
                 favorites: [],

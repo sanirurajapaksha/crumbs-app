@@ -12,7 +12,8 @@ import {
     deleteUser,
     User as FirebaseUser,
 } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
+import { doc, setDoc } from "firebase/firestore";
 import type { User } from "../types";
 
 // Map Firebase User to app User shape
@@ -67,10 +68,19 @@ export async function loginWithEmail({ email, password }: LoginParams): Promise<
 export async function signupWithEmail({ name, email, password }: SignupParams): Promise<User> {
     try {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+        // Create user profile in Firestore
+        setDoc(doc(db, "users", cred.user.uid), {
+            name: name.trim(),
+            email: email,
+            createdAt: new Date().toISOString(),
+        });
+
         // Set displayName immediately after account creation
         if (name?.trim()) {
-            await updateProfile(cred.user, { displayName: name.trim() });
+            updateProfile(cred.user, { displayName: name.trim() });
         }
+
         return toAppUser(cred.user);
     } catch (e) {
         throw mapAuthError(e);
