@@ -23,11 +23,8 @@ export interface StoreState {
     login: (email: string, password: string) => Promise<User>;
     signup: (name: string, email: string, password: string) => Promise<User>;
     signOut: () => Promise<void>;
-<<<<<<< HEAD
     deleteAccount: (password: string) => Promise<void>;
-=======
     resetPassword?: (email: string) => Promise<void>;
->>>>>>> 78dfe7eaacb2b7088d4981717363d0c552d43386
     startAuthListener: () => void;
     addPantryItem: (item: PantryItem) => void;
     updatePantryItem: (id: string, patch: Partial<PantryItem>) => void;
