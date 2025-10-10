@@ -234,8 +234,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 18,
-        paddingVertical: 20,
+        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingBottom: 16,
         backgroundColor: `${colors.neutral100}CC`, // 80% opacity
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
