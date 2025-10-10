@@ -23,14 +23,13 @@ export default function RootLayout() {
     return (
         <Stack screenOptions={{ headerShown: false }}>
             {/* Auth & Onboarding */}
-            <Stack.Screen name="screens/Auth/DemoLogin" />
-            <Stack.Screen name="screens/Auth/LoginScreen" />
+            <Stack.Screen name="screens/Auth/LoginScreen" options={{ gestureEnabled: false }} />
             <Stack.Screen name="screens/Auth/SignupScreen" />
             <Stack.Screen name="screens/Onboarding/Slide1" />
             <Stack.Screen name="screens/Onboarding/Slide2" />
             <Stack.Screen name="screens/Onboarding/Slide3" />
             {/* Feature Flows */}
-            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
             <Stack.Screen name="screens/Pantry/PantryInput" />
             <Stack.Screen name="screens/Pantry/CameraScreen" />
             <Stack.Screen name="screens/Pantry/ManualEntry" />

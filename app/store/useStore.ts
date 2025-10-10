@@ -134,15 +134,13 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     setHasOnboarded: () => set({ hasOnboarded: true }),
     // Notification actions
     markNotificationAsRead: (id: string) => {
-        set({ 
-            notifications: get().notifications.map((n: Notification) => 
-                n.id === id ? { ...n, read: true } : n
-            ) 
+        set({
+            notifications: get().notifications.map((n: Notification) => (n.id === id ? { ...n, read: true } : n)),
         });
     },
     markAllNotificationsAsRead: () => {
-        set({ 
-            notifications: get().notifications.map((n: Notification) => ({ ...n, read: true })) 
+        set({
+            notifications: get().notifications.map((n: Notification) => ({ ...n, read: true })),
         });
     },
     clearAllNotifications: () => {
