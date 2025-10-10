@@ -2,7 +2,7 @@ import { create, StateCreator } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
-import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth } from "../api/auth";
+import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth, deleteAccount as fbDeleteAccount } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
 
@@ -23,6 +23,7 @@ export interface StoreState {
     login: (email: string, password: string) => Promise<User>;
     signup: (name: string, email: string, password: string) => Promise<User>;
     signOut: () => Promise<void>;
+    deleteAccount: (password: string) => Promise<void>;
     startAuthListener: () => void;
     addPantryItem: (item: PantryItem) => void;
     updatePantryItem: (id: string, patch: Partial<PantryItem>) => void;
@@ -90,6 +91,25 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             set({ authLoading: false });
             // redirect to login
             router.replace("/screens/Auth/LoginScreen");
+        }
+    },
+    deleteAccount: async (password: string) => {
+        set({ authLoading: true });
+        try {
+            await fbDeleteAccount(password);
+            // Clear all user data from store
+            set({ 
+                user: null,
+                pantryItems: [],
+                favorites: [],
+                myRecipes: [],
+                likedPosts: [],
+                notifications: [],
+            });
+            // Redirect to login
+            router.replace("/screens/Auth/LoginScreen");
+        } finally {
+            set({ authLoading: false });
         }
     },
     startAuthListener: () => {

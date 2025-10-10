@@ -43,8 +43,6 @@ export default function SettingsScreen() {
     // Local state for toggles (in real app, these would be persisted in store)
     const [pushNotifications, setPushNotifications] = useState(true);
     const [emailNotifications, setEmailNotifications] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
-    const [biometricAuth, setBiometricAuth] = useState(false);
 
     // Modal states
     const [showEditProfile, setShowEditProfile] = useState(false);
@@ -83,16 +81,7 @@ export default function SettingsScreen() {
     };
 
     const handleDeleteAccount = () => {
-        Alert.alert("Delete Account", "This action cannot be undone. All your data will be permanently deleted.", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => {
-                    Alert.alert("Info", "Account deletion feature coming soon");
-                },
-            },
-        ]);
+        router.push("./DeleteAccountScreen" as any);
     };
 
     const handleSaveProfile = () => {
@@ -184,34 +173,6 @@ export default function SettingsScreen() {
                 {/* Security Section */}
                 <SectionHeader title="SECURITY & PRIVACY" />
                 <View style={styles.section}>
-                    <SettingItem
-                        icon="moon-outline"
-                        title="Dark Mode"
-                        subtitle="Enable dark theme"
-                        rightElement={
-                            <Switch
-                                value={darkMode}
-                                onValueChange={setDarkMode}
-                                trackColor={{ false: colors.neutral300, true: colors.accent }}
-                                thumbColor={colors.white}
-                            />
-                        }
-                        showChevron={false}
-                    />
-                    <SettingItem
-                        icon="finger-print-outline"
-                        title="Biometric Authentication"
-                        subtitle="Use fingerprint or face ID to login"
-                        rightElement={
-                            <Switch
-                                value={biometricAuth}
-                                onValueChange={setBiometricAuth}
-                                trackColor={{ false: colors.neutral300, true: colors.accent }}
-                                thumbColor={colors.white}
-                            />
-                        }
-                        showChevron={false}
-                    />
                     <SettingItem
                         icon="shield-outline"
                         title="Privacy Policy"

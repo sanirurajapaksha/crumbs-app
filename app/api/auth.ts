@@ -9,6 +9,7 @@ import {
     reauthenticateWithCredential,
     EmailAuthProvider,
     sendPasswordResetEmail,
+    deleteUser,
     User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "../firebase/config";
@@ -114,6 +115,25 @@ export async function changePassword(currentPassword: string, newPassword: strin
 export async function sendPasswordReset(email: string): Promise<void> {
     try {
         await sendPasswordResetEmail(auth, email);
+    } catch (e) {
+        throw mapAuthError(e);
+    }
+}
+
+// Delete user account with reauthentication
+export async function deleteAccount(password: string): Promise<void> {
+    try {
+        const user = auth.currentUser;
+        if (!user || !user.email) {
+            throw new Error("No user is currently logged in.");
+        }
+
+        // Reauthenticate user before deletion (required by Firebase)
+        const credential = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, credential);
+
+        // Delete the user account
+        await deleteUser(user);
     } catch (e) {
         throw mapAuthError(e);
     }
