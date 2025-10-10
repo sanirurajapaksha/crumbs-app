@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Comment } from "@/app/types";
 

@@ -25,12 +25,6 @@ export default function PostPage() {
 
     const [comment, setComment] = useState("");
 
-    const mockComments = [
-        { id: "c1", name: "Liam Harper", when: "2d", text: "This soup looks amazing! Can't wait to try it." },
-        { id: "c2", name: "Ava Bennett", when: "1d", text: "I made this last night and it was a hit! Thanks for sharing." },
-        { id: "c3", name: "Noah Wilson", when: "5h", text: "What kind of lentils did you use? Red or green?" },
-    ];
-
     return (
         <View style={styles.container}>
             <View style={{ position: "relative" }}>
