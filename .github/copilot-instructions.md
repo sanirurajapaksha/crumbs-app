@@ -4,11 +4,13 @@
 
 This is a React Native recipe app built with Expo SDK 54. Key components:
 - **Framework**: React Native + Expo, TypeScript strict mode, React Compiler enabled
-- **Routing**: Expo Router with file-based routing (`app/` directory)
+- **Routing**: Expo Router with file-based routing (`app/` directory), typed routes enabled
 - **State**: Zustand with AsyncStorage persistence + Firebase auth integration
 - **Auth**: Firebase Authentication with React Native persistence
 - **Navigation**: Stack + Tabs hybrid navigation pattern
 - **API**: Firebase Auth (production) + Mock API layer for recipe/community features
+- **Camera**: Expo Camera for pantry item scanning (requires permissions)
+- **Build**: New Architecture enabled, predictive back gesture disabled
 
 ## Project Structure Patterns
 
@@ -61,6 +63,29 @@ The store integrates Firebase auth with centralized methods:
 
 ## Component Conventions
 
+### Modal Patterns
+```typescript
+// EditIngredientModal - Full-screen modal with form validation
+<Modal animationType="slide" transparent={true} visible={visible}>
+    <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+            {/* Header with close button */}
+            {/* ScrollView content */}
+            {/* Action buttons at bottom */}
+        </View>
+    </View>
+</Modal>
+
+// ModalSheet - Bottom sheet modal for quick actions
+<Modal animationType="slide" transparent visible={visible}>
+    <View style={styles.backdrop}>
+        <View style={styles.sheet}>
+            {/* Content */}
+        </View>
+    </View>
+</Modal>
+```
+
 ### Styling Patterns
 ```typescript
 // Import centralized colors
@@ -75,6 +100,7 @@ const styles = StyleSheet.create({
 **Color Tokens**: Use semantic names (`colors.accent`, `colors.textMuted`) not hex values
 **Layout**: Prefer `StyleSheet.create()` over inline styles
 **Borders**: Use `StyleSheet.hairlineWidth` for 1px borders
+**Modals**: Two patterns - full modals vs bottom sheets (see ModalSheet.tsx vs EditIngredientModal.tsx)
 
 ### Component Structure
 ```typescript
@@ -112,6 +138,24 @@ The `useAsyncSeed` hook auto-loads demo data on app start:
 - Called from root layout to ensure data availability
 - Integrates with Zustand store for initial state hydration
 
+## Expo Configuration & Permissions
+
+### Critical app.json Settings
+```json
+{
+  "expo": {
+    "newArchEnabled": true,
+    "experiments": { "typedRoutes": true, "reactCompiler": true },
+    "android": { "predictiveBackGestureEnabled": false },
+    "plugins": ["expo-router", "expo-camera", "expo-splash-screen"]
+  }
+}
+```
+
+**Camera Permissions**: Configured for iOS (`NSCameraUsageDescription`) and Android (`CAMERA` permission)
+**Typed Routes**: Expo Router generates type-safe navigation
+**React Compiler**: Enabled for optimization (may affect debugging)
+
 ## Development Workflows
 
 ### Common Commands
@@ -122,6 +166,12 @@ npm run ios              # Run on iOS simulator
 npm run web              # Run web version
 npm run lint             # ESLint check
 ```
+
+### Navigation Debugging
+- **Tab Navigator**: Check `(tabs)/_layout.tsx` for tab configuration
+- **Stack Navigator**: Root `_layout.tsx` handles auth/modal flows
+- **Auth Loading**: App shows spinner until Firebase auth state loads (`user === undefined`)
+- **Typed Routes**: Use `router.push("/screens/Recipe/RecipeDetail")` with full paths
 
 ### File Creation Guidelines
 - **New screens**: Add to `app/screens/[Domain]/`
