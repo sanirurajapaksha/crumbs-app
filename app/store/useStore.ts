@@ -1,6 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
-import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth, deleteAccount as fbDeleteAccount } from "../api/auth";
+import {
+    loginWithEmail,
+    logout as fbLogout,
+    signupWithEmail,
+    subscribeToAuth,
+    deleteAccount as fbDeleteAccount,
+    sendPasswordReset,
+    updateUserProfileInFirestore,
+} from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts } from "../api/mockApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
@@ -196,10 +204,10 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
                     (updatedUser as any)[key] = value;
                 }
             });
-            
+
             // Update local state immediately for instant UI feedback
             set({ user: updatedUser });
-            
+
             // Persist to Firestore in the background
             try {
                 await updateUserProfileInFirestore(currentUser.id, updates);
