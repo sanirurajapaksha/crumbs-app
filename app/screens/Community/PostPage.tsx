@@ -19,8 +19,7 @@ export default function PostPage() {
     const title = post?.name;
     const author = post?.authorId || "Sophia Carter";
     const when = timeAgo(post?.createdAt);
-    const desc =
-        "This hearty spicy soup is packed with flavor and spice, perfect for a chilly evening. It's easy to make and can be customized with your favorite vegetables and spices.";
+    const desc = post?.description;
     const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
 
     const [comment, setComment] = useState("");
