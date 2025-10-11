@@ -55,17 +55,17 @@ export async function getCommunityPosts(): Promise<CommunityPost[]> {
     return communityPosts.slice().sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
-export async function postCommunityPost(post: Omit<CommunityPost, "id" | "createdAt" | "likeCount"> & { id?: string }): Promise<CommunityPost> {
-    await delay(150);
-    const full: CommunityPost = {
-        id: post.id || `post-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        likeCount: 0,
-        ...post,
-    };
-    communityPosts.unshift(full);
-    return full;
-}
+// export async function postCommunityPost(post: Omit<CommunityPost, "id" | "createdAt" | "likeCount"> & { id?: string }): Promise<CommunityPost> {
+//     await delay(150);
+//     const full: CommunityPost = {
+//         id: post.id || `post-${Date.now()}`,
+//         createdAt: new Date().toISOString(),
+//         likeCount: 0,
+//         ...post,
+//     };
+//     communityPosts.unshift(full);
+//     return full;
+// }
 
 export function seedMockData() {
     if (communityPosts.length === 0) {
@@ -73,7 +73,8 @@ export function seedMockData() {
             {
                 id: "seed-1",
                 authorId: "Saniru",
-                text: "Just made this quick quinoa bowl!",
+                name: "Just made this quick quinoa bowl!",
+                description: "Perfect for a high-protein lunch. So easy to make with pantry staples.",
                 tags: ["quick", "high-protein"],
                 createdAt: new Date().toISOString(),
                 likeCount: 5,
@@ -86,7 +87,8 @@ export function seedMockData() {
             {
                 id: "seed-2",
                 authorId: "demo-user2",
-                text: "Love pantry cooking",
+                name: "Love pantry cooking",
+                description: "Made a delicious meal using just what I had in my pantry. So satisfying!",
                 tags: ["pantry"],
                 createdAt: new Date(Date.now() - 3600_000).toISOString(),
                 likeCount: 2,

@@ -1,11 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
 import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth, deleteAccount as fbDeleteAccount } from "../api/auth";
-import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
+import { generateRecipeFromPantry, getCommunityPosts } from "../api/mockApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
+import { postCommunityPost } from "../api/post-api";
 
 export interface StoreState {
     user: User | null;
@@ -39,7 +39,7 @@ export interface StoreState {
     likePost: (post: CommunityPost) => void;
     unlikePost: (id: string) => void;
     loadPosts: () => Promise<void>;
-    postCommunity: (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => Promise<CommunityPost>;
+    postCommunity: (uid: string, post: CommunityPost) => void;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     setHasOnboarded: () => void;
     // notification actions
@@ -147,8 +147,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         const posts = await getCommunityPosts();
         set({ communityPosts: posts });
     },
-    postCommunity: async (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => {
-        const saved = await postCommunityPost(p);
+    postCommunity: async (uid: string, post: CommunityPost) => {
+        const saved = await postCommunityPost(uid, post);
         set({ communityPosts: [saved, ...get().communityPosts] });
         return saved;
     },
