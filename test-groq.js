@@ -1,4 +1,4 @@
-import { analyzeImageForPantryItems } from '../app/api/groqApi';
+import { analyzeImageForPantryItems } from './app/api/groqApi';
 
 // Simple test function to verify API connectivity
 async function testGroqAPI() {
