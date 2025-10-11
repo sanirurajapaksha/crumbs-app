@@ -1,49 +1,426 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
+import { colors } from "../../theme/colors";
+
+const { width } = Dimensions.get("window");
+
 export default function StepDetail() {
     const { id, step } = useLocalSearchParams<{ id: string; step: string }>();
     const favorites = useStore((s: StoreState) => s.favorites);
-    const recipe = favorites.find((r: any) => r.id === id);
+    const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const router = useRouter();
-    if (!recipe)
+    const [showProgress, setShowProgress] = useState(false);
+
+    // Check both favorites and myRecipes
+    let recipe = favorites.find((r: any) => r.id === id);
+    if (!recipe) {
+        recipe = myRecipes.find((r: any) => r.id === id);
+    }
+
+    if (!recipe) {
         return (
             <View style={styles.center}>
                 <Text>No recipe</Text>
             </View>
         );
+    }
+
     const current = recipe.steps.find((s: any) => String(s.stepNumber) === step) || recipe.steps[0];
     const idx = recipe.steps.indexOf(current);
+    
     const go = (n: number) => {
         const next = recipe.steps[idx + n];
-        if (next) router.replace({ pathname: "./StepDetail", params: { id: recipe.id, step: next.stepNumber } });
+        if (next) {
+            router.replace({ 
+                pathname: "./StepDetail", 
+                params: { id: recipe.id, step: next.stepNumber } 
+            });
+        }
     };
+
+    const isLastStep = idx === recipe.steps.length - 1;
+    const progressPercent = ((idx + 1) / recipe.steps.length) * 100;
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Step {current.stepNumber}</Text>
-            <Text style={styles.body}>{current.text}</Text>
-            <View style={styles.row}>
-                <TouchableOpacity style={styles.btn} onPress={() => go(-1)} disabled={idx === 0}>
-                    <Text style={styles.btnTxt}>Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.btn} onPress={() => go(0)}>
-                    <Text style={styles.btnTxt}>Repeat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.btn} onPress={() => go(1)} disabled={idx === recipe.steps.length - 1}>
-                    <Text style={styles.btnTxt}>Next</Text>
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                </View>
+                <Text style={styles.progressText}>Step {idx + 1} of {recipe.steps.length}</Text>
+                <TouchableOpacity onPress={() => setShowProgress(!showProgress)}>
+                    <MaterialIcons name="list" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
             </View>
+
+            <ScrollView contentContainerStyle={styles.content}>
+                {/* Step Content */}
+                <View style={styles.stepContainer}>
+                    <Text style={styles.stepTitle}>Beat 3 eggs with a pinch of salt.</Text>
+                    
+                    {/* Listen Button */}
+                    <TouchableOpacity style={styles.listenButton}>
+                        <MaterialIcons name="volume-up" size={20} color={colors.accent} />
+                        <Text style={styles.listenText}>Listen</Text>
+                    </TouchableOpacity>
+
+                    {/* Step Image */}
+                    {current.image ? (
+                        <Image source={{ uri: current.image }} style={styles.stepImage} />
+                    ) : (
+                        <View style={styles.stepImagePlaceholder}>
+                            <Image 
+                                source={{ uri: "https://images.unsplash.com/photo-1587486937453-1af30a0a81fc?w=800" }} 
+                                style={styles.stepImage}
+                            />
+                        </View>
+                    )}
+
+                    <Text style={styles.stepInstruction}>{current.text}</Text>
+                </View>
+            </ScrollView>
+
+            {/* Navigation Buttons */}
+            <View style={styles.navigationContainer}>
+                <TouchableOpacity 
+                    style={[styles.navButton, styles.backButton, idx === 0 && styles.navButtonDisabled]} 
+                    onPress={() => go(-1)} 
+                    disabled={idx === 0}
+                >
+                    <Text style={[styles.navButtonText, idx === 0 && styles.navButtonTextDisabled]}>Back</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.navButton, styles.repeatButton]} onPress={() => go(0)}>
+                    <Text style={styles.navButtonText}>Repeat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.navButton, styles.nextButton]} 
+                    onPress={() => {
+                        if (isLastStep) {
+                            // Navigate to completion screen
+                            router.push({
+                                pathname: "/screens/Recipe/RecipeCompletionScreen",
+                                params: { id: recipe.id }
+                            });
+                        } else {
+                            go(1);
+                        }
+                    }}
+                >
+                    <Text style={styles.nextButtonText}>{isLastStep ? "Finish" : "Next"}</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Progress Modal Overlay */}
+            {showProgress && (
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowProgress(false)}
+                >
+                    <View style={styles.progressModal}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Your Progress</Text>
+                            <TouchableOpacity onPress={() => setShowProgress(false)}>
+                                <MaterialIcons name="close" size={24} color={colors.textPrimary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.completedText}>You've completed {idx + 1} of {recipe.steps.length} steps!</Text>
+                        
+                        {/* Steps List */}
+                        <ScrollView style={styles.stepsList}>
+                            {recipe.steps.map((s: any, index: number) => (
+                                <TouchableOpacity
+                                    key={s.stepNumber}
+                                    style={styles.progressStepItem}
+                                    onPress={() => {
+                                        setShowProgress(false);
+                                        router.replace({
+                                            pathname: "./StepDetail",
+                                            params: { id: recipe.id, step: s.stepNumber }
+                                        });
+                                    }}
+                                >
+                                    <View style={[
+                                        styles.progressStepCircle,
+                                        index < idx && styles.progressStepCircleCompleted,
+                                        index === idx && styles.progressStepCircleActive
+                                    ]}>
+                                        {index < idx ? (
+                                            <MaterialIcons name="check" size={16} color="#fff" />
+                                        ) : (
+                                            <Text style={[
+                                                styles.progressStepNumber,
+                                                index === idx && styles.progressStepNumberActive
+                                            ]}>{index + 1}</Text>
+                                        )}
+                                    </View>
+                                    <Text style={[
+                                        styles.progressStepText,
+                                        index < idx && styles.progressStepTextCompleted,
+                                        index === idx && styles.progressStepTextActive
+                                    ]}>
+                                        Step {index + 1}: {s.text.substring(0, 30)}...
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity 
+                            style={styles.resumeButton}
+                            onPress={() => setShowProgress(false)}
+                        >
+                            <Text style={styles.resumeButtonText}>Resume Cooking</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    center: { flex: 1, alignItems: "center", justifyContent: "center" },
-    container: { flex: 1, padding: 24 },
-    title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-    body: { fontSize: 16, lineHeight: 22, marginBottom: 24 },
-    row: { flexDirection: "row", justifyContent: "space-between" },
-    btn: { flex: 1, backgroundColor: "#222", padding: 14, borderRadius: 8, marginHorizontal: 4 },
-    btnTxt: { color: "#fff", textAlign: "center" },
+    center: { 
+        flex: 1, 
+        alignItems: "center", 
+        justifyContent: "center",
+        backgroundColor: "#FFF5F0",
+    },
+    container: { 
+        flex: 1,
+        backgroundColor: "#FFF5F0",
+    },
+    progressContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 12,
+        gap: 12,
+    },
+    progressBar: {
+        flex: 1,
+        height: 6,
+        backgroundColor: "#E0E0E0",
+        borderRadius: 3,
+        overflow: "hidden",
+    },
+    progressFill: {
+        height: "100%",
+        backgroundColor: colors.accent,
+        borderRadius: 3,
+    },
+    progressText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textSecondary,
+    },
+    content: {
+        padding: 16,
+        paddingBottom: 120,
+    },
+    stepContainer: {
+        backgroundColor: "#fff",
+        borderRadius: 24,
+        padding: 24,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 3,
+    },
+    stepTitle: { 
+        fontSize: 28, 
+        fontWeight: "700",
+        color: colors.textPrimary,
+        textAlign: "center",
+        marginBottom: 20,
+        lineHeight: 36,
+    },
+    listenButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFE5DC",
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 24,
+        alignSelf: "center",
+        marginBottom: 24,
+        gap: 8,
+    },
+    listenText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.accent,
+    },
+    stepImage: {
+        width: "100%",
+        height: 240,
+        borderRadius: 16,
+        marginBottom: 20,
+    },
+    stepImagePlaceholder: {
+        width: "100%",
+        height: 240,
+        borderRadius: 16,
+        marginBottom: 20,
+        backgroundColor: "#F5F5F5",
+        overflow: "hidden",
+    },
+    stepInstruction: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: colors.textSecondary,
+        textAlign: "center",
+    },
+    navigationContainer: { 
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        padding: 16,
+        backgroundColor: "#FFF5F0",
+        borderTopWidth: 1,
+        borderTopColor: "#E0E0E0",
+        gap: 12,
+    },
+    navButton: {
+        flex: 1,
+        paddingVertical: 16,
+        borderRadius: 24,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    backButton: {
+        backgroundColor: "#FFE5DC",
+    },
+    repeatButton: {
+        backgroundColor: "#FFE5DC",
+    },
+    nextButton: {
+        backgroundColor: colors.accent,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    navButtonDisabled: {
+        opacity: 0.4,
+    },
+    navButtonText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.accent,
+    },
+    navButtonTextDisabled: {
+        color: colors.textMuted,
+    },
+    nextButtonText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#fff",
+    },
+    modalOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    progressModal: {
+        backgroundColor: "#fff",
+        borderRadius: 24,
+        padding: 24,
+        width: "100%",
+        maxHeight: "80%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: colors.textPrimary,
+    },
+    completedText: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        marginBottom: 24,
+    },
+    stepsList: {
+        maxHeight: 300,
+        marginBottom: 20,
+    },
+    progressStepItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+    },
+    progressStepCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#E0E0E0",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
+    },
+    progressStepCircleCompleted: {
+        backgroundColor: "#4CAF50",
+    },
+    progressStepCircleActive: {
+        backgroundColor: colors.accent,
+    },
+    progressStepNumber: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.textSecondary,
+    },
+    progressStepNumberActive: {
+        color: "#fff",
+    },
+    progressStepText: {
+        flex: 1,
+        fontSize: 14,
+        color: colors.textMuted,
+    },
+    progressStepTextCompleted: {
+        color: colors.textMuted,
+        textDecorationLine: "line-through",
+    },
+    progressStepTextActive: {
+        color: colors.textPrimary,
+        fontWeight: "600",
+    },
+    resumeButton: {
+        backgroundColor: colors.accent,
+        paddingVertical: 16,
+        borderRadius: 24,
+        alignItems: "center",
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    resumeButtonText: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#fff",
+    },
 });
