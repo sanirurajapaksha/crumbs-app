@@ -1,6 +1,5 @@
 import { colors } from "@/app/theme/colors";
 import { CommunityPost } from "@/app/types";
-import { generateFoodImage } from "@/app/utils/imageUtils";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
@@ -18,11 +17,12 @@ function timeAgo(iso?: string) {
 }
 
 export default function PostCard(posts: CommunityPost) {
-    const hero = posts.imageURL || generateFoodImage("Recipe", { width: 800, height: 600 });
-    const authorName = posts.authorId || "Crumbs Cook";
-    const handle = `@${(posts.authorId || "cook").replace(/\s+/g, "_")}`;
+    const hero = posts?.imageURL;
+    const avatarURL = posts?.authorAvatarUrl;
+    const authorName = posts.authorName;
+    const handle = `@${(posts.authorName || "cook").replace(/\s+/g, "_")}`;
     const title = posts.name?.length > 0 ? posts.name : "Shared a tasty dish";
-    const subtitle = posts.tags && posts.tags.length > 0 ? `Pro Tip: ${posts.tags.join(", ")}` : undefined;
+    const subtitle = posts.description ? `${posts.description}` : "";
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
     return (
@@ -33,7 +33,7 @@ export default function PostCard(posts: CommunityPost) {
                     <View style={styles.cardBody}>
                         <View style={styles.authorRow}>
                             <View style={styles.avatar}>
-                                <Text style={styles.avatarTxt}>{authorName.charAt(0).toUpperCase()}</Text>
+                                <Image source={{ uri: avatarURL }} style={{ width: 32, height: 32, borderRadius: 16 }} />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.authorName}>{authorName}</Text>

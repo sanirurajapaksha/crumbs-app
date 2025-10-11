@@ -50,12 +50,15 @@ export interface StoreState {
     loadPosts: () => Promise<void>;
     postCommunity: (uid: string, post: CommunityPost) => void;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
-    generateRecipeWithAI: (pantry: PantryItem[], options?: {
-        categoryId?: string[];
-        goal?: string;
-        servings?: number;
-        cookingTimeMax?: number;
-    }) => Promise<Recipe>;
+    generateRecipeWithAI: (
+        pantry: PantryItem[],
+        options?: {
+            categoryId?: string[];
+            goal?: string;
+            servings?: number;
+            cookingTimeMax?: number;
+        }
+    ) => Promise<Recipe>;
     setHasOnboarded: () => void;
     updateUserProfile: (updates: Partial<User>) => Promise<void>;
     // notification actions
@@ -157,9 +160,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         if (unsubscribeAuth) return; // idempotent
         unsubscribeAuth = subscribeToAuth((u) => {
             if (u) {
-                // Preserve local user data (like avatarUrl) when Firebase auth updates
                 const currentUser = get().user;
-                const mergedUser = currentUser ? { ...u, avatarUrl: currentUser.avatarUrl, bio: currentUser.bio } : u;
+                const mergedUser = currentUser ? { ...u, avatarUrl: u.avatarUrl, bio: u.bio } : u;
                 set({ user: mergedUser });
             } else set({ user: null });
         });
@@ -197,19 +199,22 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     generateRecipeMock: async (pantry: PantryItem[], options?: any) => {
         return generateRecipeFromPantry(pantry, options);
     },
-    generateRecipeWithAI: async (pantry: PantryItem[], options?: {
-        categoryId?: string[];
-        goal?: string;
-        servings?: number;
-        cookingTimeMax?: number;
-    }) => {
+    generateRecipeWithAI: async (
+        pantry: PantryItem[],
+        options?: {
+            categoryId?: string[];
+            goal?: string;
+            servings?: number;
+            cookingTimeMax?: number;
+        }
+    ) => {
         try {
             const recipe = await generateRecipeWithGemini(pantry, options);
             // Automatically save to myRecipes
             get().saveMyRecipe(recipe);
             return recipe;
         } catch (error) {
-            console.error('Failed to generate recipe with AI:', error);
+            console.error("Failed to generate recipe with AI:", error);
             throw error;
         }
     },
