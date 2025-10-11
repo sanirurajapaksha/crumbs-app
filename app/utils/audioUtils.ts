@@ -1,5 +1,5 @@
-import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 
 export interface AudioRecording {
     recording: Audio.Recording | null;
@@ -17,7 +17,7 @@ export interface RecordingState {
 // Configure audio recording settings
 const RECORDING_OPTIONS_PRESET_HIGH_QUALITY: Audio.RecordingOptions = {
     android: {
-        extension: '.wav',
+        extension: ".wav",
         outputFormat: Audio.AndroidOutputFormat.DEFAULT,
         audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
         sampleRate: 16000,
@@ -25,7 +25,7 @@ const RECORDING_OPTIONS_PRESET_HIGH_QUALITY: Audio.RecordingOptions = {
         bitRate: 128000,
     },
     ios: {
-        extension: '.wav',
+        extension: ".wav",
         audioQuality: Audio.IOSAudioQuality.HIGH,
         sampleRate: 16000,
         numberOfChannels: 1,
@@ -35,7 +35,7 @@ const RECORDING_OPTIONS_PRESET_HIGH_QUALITY: Audio.RecordingOptions = {
         linearPCMIsFloat: false,
     },
     web: {
-        mimeType: 'audio/wav',
+        mimeType: "audio/wav",
         bitsPerSecond: 128000,
     },
 };
@@ -47,7 +47,7 @@ export async function initializeAudio(): Promise<boolean> {
     try {
         // Request permissions
         const { granted } = await Audio.requestPermissionsAsync();
-        
+
         if (!granted) {
             return false;
         }
@@ -62,7 +62,7 @@ export async function initializeAudio(): Promise<boolean> {
 
         return true;
     } catch (error) {
-        console.error('Error initializing audio:', error);
+        console.error("Error initializing audio:", error);
         return false;
     }
 }
@@ -77,7 +77,7 @@ export async function startRecording(): Promise<Audio.Recording | null> {
         await recording.startAsync();
         return recording;
     } catch (error) {
-        console.error('Error starting recording:', error);
+        console.error("Error starting recording:", error);
         return null;
     }
 }
@@ -91,7 +91,7 @@ export async function stopRecording(recording: Audio.Recording): Promise<string 
         const uri = recording.getURI();
         return uri;
     } catch (error) {
-        console.error('Error stopping recording:', error);
+        console.error("Error stopping recording:", error);
         return null;
     }
 }
@@ -107,7 +107,7 @@ export async function getRecordingDuration(recording: Audio.Recording): Promise<
         }
         return 0;
     } catch (error) {
-        console.error('Error getting recording duration:', error);
+        console.error("Error getting recording duration:", error);
         return 0;
     }
 }
@@ -123,7 +123,7 @@ export async function cleanupRecording(recording: Audio.Recording): Promise<void
             // No explicit cleanup needed for expo-av recordings
         }
     } catch (error) {
-        console.error('Error cleaning up recording:', error);
+        console.error("Error cleaning up recording:", error);
     }
 }
 
@@ -132,11 +132,11 @@ export async function cleanupRecording(recording: Audio.Recording): Promise<void
  */
 export async function deleteAudioFile(uri: string): Promise<void> {
     try {
-        const fileInfo = await FileSystem.getInfoAsync(uri);
-        if (fileInfo.exists) {
-            await FileSystem.deleteAsync(uri);
+        const file = new FileSystem.File(uri);
+        if (file.exists) {
+            await file.delete();
         }
     } catch (error) {
-        console.error('Error deleting audio file:', error);
+        console.error("Error deleting audio file:", error);
     }
 }
