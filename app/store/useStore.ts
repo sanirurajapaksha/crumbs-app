@@ -9,6 +9,7 @@ import {
     sendPasswordReset,
 } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
+import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -48,6 +49,12 @@ export interface StoreState {
     loadPosts: () => Promise<void>;
     postCommunity: (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => Promise<CommunityPost>;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
+    generateRecipeWithAI: (pantry: PantryItem[], options?: {
+        categoryId?: string[];
+        goal?: string;
+        servings?: number;
+        cookingTimeMax?: number;
+    }) => Promise<Recipe>;
     setHasOnboarded: () => void;
     // notification actions
     markNotificationAsRead: (id: string) => void;
@@ -161,6 +168,22 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     },
     generateRecipeMock: async (pantry: PantryItem[], options?: any) => {
         return generateRecipeFromPantry(pantry, options);
+    },
+    generateRecipeWithAI: async (pantry: PantryItem[], options?: {
+        categoryId?: string[];
+        goal?: string;
+        servings?: number;
+        cookingTimeMax?: number;
+    }) => {
+        try {
+            const recipe = await generateRecipeWithGemini(pantry, options);
+            // Automatically save to myRecipes
+            get().saveMyRecipe(recipe);
+            return recipe;
+        } catch (error) {
+            console.error('Failed to generate recipe with AI:', error);
+            throw error;
+        }
     },
     setHasOnboarded: () => set({ hasOnboarded: true }),
     // Notification actions
