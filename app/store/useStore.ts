@@ -1,13 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
-import {
-    loginWithEmail,
-    logout as fbLogout,
-    signupWithEmail,
-    subscribeToAuth,
-    deleteAccount as fbDeleteAccount,
-    sendPasswordReset,
-} from "../api/auth";
+import { loginWithEmail, logout as fbLogout, signupWithEmail, subscribeToAuth, deleteAccount as fbDeleteAccount } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";

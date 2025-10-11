@@ -1,46 +1,250 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useStore, StoreState } from "../../store/useStore";
-import { useRouter } from "expo-router"; // using imperative back after submit
+import { useRouter } from "expo-router";
+import { colors } from "@/app/theme/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ShareRecipe() {
     const postCommunity = useStore((s: StoreState) => s.postCommunity);
     const user = useStore((s: StoreState) => s.user);
     const [text, setText] = useState("");
     const [tags, setTags] = useState("");
+    const [mealName, setMealName] = useState("");
+    const [description, setDescription] = useState("");
     const router = useRouter();
 
-    const pickImageMock = () => {
-        /* TODO: integrate image picker */
-    };
     const submit = async () => {
-        await postCommunity({ authorId: user?.id || "anon", text, tags: tags.split(/[,\s]+/).filter(Boolean) }); // Fix for tags mapping
+        if (!mealName.trim() || !description.trim()) return;
+
+        await postCommunity({
+            authorId: user?.id || "anon",
+            text: `${mealName}\n\n${description}`,
+            tags: tags.split(/[,\s]+/).filter(Boolean),
+        });
         router.back();
     };
 
+    const isSubmitDisabled = !mealName.trim() || !description.trim();
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Share Recipe</Text>
-            <TextInput style={styles.input} placeholder="Say something..." value={text} onChangeText={setText} />
-            <TextInput style={styles.input} placeholder="tags (comma or space)" value={tags} onChangeText={setTags} />
-            <View style={styles.row}>
-                <TouchableOpacity style={styles.action} onPress={pickImageMock}>
-                    <Text>+ Image</Text>
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Share Your Meal</Text>
+                <View style={styles.headerSpace} />
+            </View>
+
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Meal Photo Placeholder */}
+                <View style={styles.photoSection}>
+                    <View style={styles.photoPlaceholder}>
+                        <Ionicons name="camera-outline" size={48} color={colors.neutral500} />
+                        <Text style={styles.photoPlaceholderText}>Add a photo of your meal</Text>
+                        <Text style={styles.photoSubtext}>Coming soon!</Text>
+                    </View>
+                </View>
+
+                {/* Form Fields */}
+                <View style={styles.formSection}>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Meal Name *</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="What did you make?"
+                            placeholderTextColor={colors.neutral500}
+                            value={mealName}
+                            onChangeText={setMealName}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Description *</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Tell us about your meal... How did it taste? Any cooking tips?"
+                            placeholderTextColor={colors.neutral500}
+                            value={description}
+                            onChangeText={setDescription}
+                            multiline
+                            numberOfLines={4}
+                            textAlignVertical="top"
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Tags</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Add tags (e.g., spicy, vegetarian, comfort food)"
+                            placeholderTextColor={colors.neutral500}
+                            value={tags}
+                            onChangeText={setTags}
+                        />
+                        <Text style={styles.helperText}>Separate tags with commas or spaces</Text>
+                    </View>
+                </View>
+
+                {/* Tips Section */}
+                <View style={styles.tipsSection}>
+                    <Text style={styles.tipsTitle}>💡 Sharing Tips</Text>
+                    <View style={styles.tipItem}>
+                        <Text style={styles.tipText}>• Describe the flavors and textures</Text>
+                    </View>
+                    <View style={styles.tipItem}>
+                        <Text style={styles.tipText}>• Share any cooking techniques you used</Text>
+                    </View>
+                    <View style={styles.tipItem}>
+                        <Text style={styles.tipText}>• Mention if you made any modifications</Text>
+                    </View>
+                </View>
+            </ScrollView>
+
+            {/* Submit Button */}
+            <View style={styles.footer}>
+                <TouchableOpacity
+                    style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
+                    onPress={submit}
+                    disabled={isSubmitDisabled}
+                >
+                    <Text style={[styles.submitButtonText, isSubmitDisabled && styles.submitButtonTextDisabled]}>Share Your Meal</Text>
                 </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.button} onPress={submit}>
-                <Text style={styles.buttonText}>Post</Text>
-            </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16 },
-    title: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
-    input: { borderWidth: 1, borderColor: "#ccc", padding: 12, borderRadius: 8, marginBottom: 12 },
-    row: { flexDirection: "row", gap: 12 },
-    action: { backgroundColor: "#eee", padding: 12, borderRadius: 8 },
-    button: { backgroundColor: "#222", padding: 16, borderRadius: 10, marginTop: "auto" },
-    buttonText: { color: "#fff", textAlign: "center", fontWeight: "600" },
+    container: {
+        flex: 1,
+        backgroundColor: colors.white,
+    },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 16,
+        paddingTop: 60,
+        paddingBottom: 16,
+        backgroundColor: colors.white,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.neutral200,
+    },
+    backButton: {
+        padding: 8,
+        marginLeft: -8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: colors.textPrimary,
+    },
+    headerSpace: {
+        width: 40,
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: 16,
+    },
+    photoSection: {
+        marginVertical: 20,
+    },
+    photoPlaceholder: {
+        height: 200,
+        backgroundColor: colors.neutral50,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: colors.neutral200,
+        borderStyle: "dashed",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    photoPlaceholderText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.neutral600,
+        marginTop: 8,
+    },
+    photoSubtext: {
+        fontSize: 14,
+        color: colors.neutral500,
+        marginTop: 4,
+    },
+    formSection: {
+        marginBottom: 24,
+    },
+    inputGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: colors.neutral300,
+        backgroundColor: colors.white,
+        padding: 16,
+        borderRadius: 12,
+        fontSize: 16,
+        color: colors.textPrimary,
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: "top",
+    },
+    helperText: {
+        fontSize: 12,
+        color: colors.neutral600,
+        marginTop: 6,
+    },
+    tipsSection: {
+        backgroundColor: colors.neutral50,
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 24,
+    },
+    tipsTitle: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginBottom: 12,
+    },
+    tipItem: {
+        marginBottom: 6,
+    },
+    tipText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        lineHeight: 20,
+    },
+    footer: {
+        padding: 16,
+        paddingBottom: 32,
+        backgroundColor: colors.white,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.neutral200,
+    },
+    submitButton: {
+        backgroundColor: colors.accent,
+        padding: 18,
+        borderRadius: 12,
+        alignItems: "center",
+    },
+    submitButtonDisabled: {
+        backgroundColor: colors.neutral300,
+    },
+    submitButtonText: {
+        color: colors.white,
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    submitButtonTextDisabled: {
+        color: colors.neutral600,
+    },
 });
