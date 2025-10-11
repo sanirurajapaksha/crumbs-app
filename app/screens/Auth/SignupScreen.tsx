@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image } fro
 import { Link } from "expo-router";
 import { colors } from "../../theme/colors";
 import { useStore, StoreState } from "@/app/store/useStore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SignupScreen() {
     const signup = useStore((s: StoreState) => s.signup);
@@ -12,6 +13,8 @@ export default function SignupScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const handleSignup = () => {
         if (!name.trim()) return Alert.alert("Name required", "Please enter your full name.");
@@ -45,25 +48,53 @@ export default function SignupScreen() {
                         keyboardType="email-address"
                         returnKeyType="next"
                     />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Password"
-                        placeholderTextColor={colors.neutral500}
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                        returnKeyType="next"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Confirm Password"
-                        placeholderTextColor={colors.neutral500}
-                        secureTextEntry
-                        value={confirm}
-                        onChangeText={setConfirm}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSignup}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Password"
+                            placeholderTextColor={colors.neutral500}
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={setPassword}
+                            returnKeyType="next"
+                        />
+                        {password.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowPassword(!showPassword)}
+                            >
+                                <Ionicons
+                                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                    size={22}
+                                    color={colors.neutral500}
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Confirm Password"
+                            placeholderTextColor={colors.neutral500}
+                            secureTextEntry={!showConfirm}
+                            value={confirm}
+                            onChangeText={setConfirm}
+                            returnKeyType="done"
+                            onSubmitEditing={handleSignup}
+                        />
+                        {confirm.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowConfirm(!showConfirm)}
+                            >
+                                <Ionicons
+                                    name={showConfirm ? "eye-off-outline" : "eye-outline"}
+                                    size={22}
+                                    color={colors.neutral500}
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                     <TouchableOpacity
                         style={[styles.primaryBtn, authLoading && { opacity: 0.7 }]}
                         onPress={handleSignup}
@@ -116,6 +147,25 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         fontSize: 14,
         marginBottom: 14,
+    },
+    passwordContainer: {
+        position: "relative",
+        marginBottom: 14,
+    },
+    passwordInput: {
+        backgroundColor: colors.neutral50,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        paddingRight: 50,
+        borderRadius: 24,
+        fontSize: 14,
+    },
+    eyeIcon: {
+        position: "absolute",
+        right: 18,
+        top: "40%",
+        transform: [{ translateY: -11 }],
+        padding: 4,
     },
     primaryBtn: {
         backgroundColor: colors.accent,
