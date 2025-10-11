@@ -1,6 +1,5 @@
 import { colors } from "@/app/theme/colors";
 import { CommunityPost } from "@/app/types";
-import { generateFoodImage } from "@/app/utils/imageUtils";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
@@ -18,11 +17,11 @@ function timeAgo(iso?: string) {
 }
 
 export default function PostCard(posts: CommunityPost) {
-    const hero = posts.imageURL || generateFoodImage("Recipe", { width: 800, height: 600 });
+    const hero = posts?.imageURL;
     const authorName = posts.authorName;
     const handle = `@${(posts.authorName || "cook").replace(/\s+/g, "_")}`;
     const title = posts.name?.length > 0 ? posts.name : "Shared a tasty dish";
-    const subtitle = posts.description ? `${posts.description}` : undefined;
+    const subtitle = posts.description ? `${posts.description}` : "";
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
     return (

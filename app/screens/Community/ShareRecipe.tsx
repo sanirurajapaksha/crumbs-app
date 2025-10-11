@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from "react-native";
-import { useStore, StoreState } from "../../store/useStore";
+import { useStore, StoreState, useUtilFunctions, UtilFunctions } from "../../store/useStore";
 import { useRouter } from "expo-router";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { CommunityPost } from "@/app/types";
 import * as ImagePicker from "expo-image-picker";
+import { imagePostAPI } from "@/app/api/imagePostAPI";
 
 export default function ShareRecipe() {
     const postCommunity = useStore((s: StoreState) => s.postCommunity);
@@ -14,17 +15,43 @@ export default function ShareRecipe() {
     const [mealName, setMealName] = useState("");
     const [description, setDescription] = useState("");
     const [imageURL, setImageURL] = useState("");
+    const setLoading = useUtilFunctions((state: UtilFunctions) => state.setLoading);
+    const loading = useUtilFunctions((state: UtilFunctions) => state.loading);
     const router = useRouter();
 
     const submit = async () => {
-        if (!mealName.trim() || !description.trim()) return;
+        setLoading(true);
+
+        let uploadedImageUrl = { data: { url: "" } };
+        if (imageURL) {
+            try {
+                uploadedImageUrl = await imagePostAPI(imageURL);
+            } catch (error) {
+                console.error("Image upload failed:", error);
+                Alert.alert("Image Upload Error", "There was an issue uploading your image. Please try again.", [{ text: "OK" }]);
+                setLoading(false);
+                return;
+            }
+        }
+
+        if (!mealName.trim() || !description.trim()) {
+            Alert.alert("Validation Error", "Please provide both a meal name and description.", [{ text: "OK" }]);
+            setLoading(false);
+            return;
+        }
+
+        if (!imageURL) {
+            Alert.alert("Validation Error", "Please add a photo of your meal.", [{ text: "OK" }]);
+            setLoading(false);
+            return;
+        }
 
         const newPost: CommunityPost = {
             id: Math.random().toString(36).substring(2, 15),
             authorId: user?.id as string,
             authorName: user?.name || "Anonymous",
             authorAvatarUrl: user?.avatarUrl || "",
-            imageURL: imageURL,
+            imageURL: uploadedImageUrl.data.url,
             name: mealName.trim(),
             description: description.trim(),
             tags: tags.split(/[,\s]+/).filter(Boolean),
@@ -34,8 +61,10 @@ export default function ShareRecipe() {
         };
 
         if (postCommunity(user?.id as string, newPost) != null) {
+            setLoading(false);
             Alert.alert("Success", "Your meal has been shared!", [{ text: "OK", onPress: () => router.back() }]);
         } else {
+            setLoading(false);
             Alert.alert("Error", "There was an issue sharing your meal. Please try again later.", [{ text: "OK" }]);
         }
     };
@@ -147,7 +176,9 @@ export default function ShareRecipe() {
                     onPress={submit}
                     disabled={isSubmitDisabled}
                 >
-                    <Text style={[styles.submitButtonText, isSubmitDisabled && styles.submitButtonTextDisabled]}>Share Your Meal</Text>
+                    <Text style={[styles.submitButtonText, isSubmitDisabled && styles.submitButtonTextDisabled]}>
+                        {loading ? "Sharing..." : "Share Your Meal"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
