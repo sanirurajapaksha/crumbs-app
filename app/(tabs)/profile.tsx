@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    Image,
-    TouchableOpacity,
-    Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from "react-native";
 import { useStore, StoreState } from "../store/useStore";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -58,17 +50,11 @@ export default function Profile() {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Profile</Text>
                 <View style={styles.headerIcons}>
-                    <TouchableOpacity 
-                        style={styles.iconButton}
-                        onPress={() => router.push("/screens/Notifications/NotificationsScreen")}
-                    >
-                        <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                    <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/screens/Notifications/NotificationsScreen")}>
+                        <Ionicons name="notifications-outline" size={24} color={colors.black} />
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={styles.iconButton}
-                        onPress={() => router.push("/screens/Settings/SettingsScreen")}
-                    >
-                        <Ionicons name="settings-outline" size={24} color={colors.text} />
+                    <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/screens/Settings/SettingsScreen")}>
+                        <Ionicons name="settings-outline" size={24} color={colors.black} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -91,29 +77,17 @@ export default function Profile() {
 
                 {/* Tabs */}
                 <View style={styles.tabsContainer}>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === "myRecipes" && styles.activeTab]}
-                        onPress={() => setActiveTab("myRecipes")}
-                    >
-                        <Text style={[styles.tabText, activeTab === "myRecipes" && styles.activeTabText]}>
-                            My Recipes
-                        </Text>
+                    <TouchableOpacity style={[styles.tab, activeTab === "myRecipes" && styles.activeTab]} onPress={() => setActiveTab("myRecipes")}>
+                        <Text style={[styles.tabText, activeTab === "myRecipes" && styles.activeTabText]}>My Recipes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tab, activeTab === "savedRecipes" && styles.activeTab]}
                         onPress={() => setActiveTab("savedRecipes")}
                     >
-                        <Text style={[styles.tabText, activeTab === "savedRecipes" && styles.activeTabText]}>
-                            Saved Recipes
-                        </Text>
+                        <Text style={[styles.tabText, activeTab === "savedRecipes" && styles.activeTabText]}>Saved Recipes</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === "likedPosts" && styles.activeTab]}
-                        onPress={() => setActiveTab("likedPosts")}
-                    >
-                        <Text style={[styles.tabText, activeTab === "likedPosts" && styles.activeTabText]}>
-                            Liked Posts
-                        </Text>
+                    <TouchableOpacity style={[styles.tab, activeTab === "likedPosts" && styles.activeTab]} onPress={() => setActiveTab("likedPosts")}>
+                        <Text style={[styles.tabText, activeTab === "likedPosts" && styles.activeTabText]}>Liked Posts</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -143,21 +117,20 @@ export default function Profile() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: colors.neutral100,
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 50,
-        backgroundColor: colors.background,
+        paddingTop: 60,
+        paddingBottom: 16,
+        paddingHorizontal: 20,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: "700",
-        color: colors.text,
+        color: colors.black,
     },
     headerIcons: {
         flexDirection: "row",
@@ -190,7 +163,7 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: 24,
         fontWeight: "700",
-        color: colors.text,
+        color: colors.black,
         marginBottom: 4,
     },
     userBio: {
@@ -240,13 +213,13 @@ const styles = StyleSheet.create({
         width: CARD_SIZE,
         height: CARD_SIZE,
         borderRadius: 12,
-        backgroundColor: colors.cardBackground,
+        backgroundColor: colors.neutral200,
         marginBottom: 8,
     },
     recipeTitle: {
         fontSize: 14,
         fontWeight: "600",
-        color: colors.text,
+        color: colors.black,
         lineHeight: 18,
     },
     emptyState: {

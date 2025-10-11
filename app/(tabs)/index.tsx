@@ -76,91 +76,82 @@ export default function HomeScreen() {
     return (
         <View style={styles.wrapper}>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.logo}>Crumbs</Text>
-            </View>
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.logo}>Crumbs</Text>
+                </View>
 
-            {/* Greeting */}
-            <View style={styles.greetingSection}>
-                <Text style={styles.greeting}>Good Morning, {user?.name || "Alex"}!</Text>
-                <Text style={styles.subGreeting}>Discover new recipes tailored just for you.</Text>
-            </View>
+                {/* Greeting */}
+                <View style={styles.greetingSection}>
+                    <Text style={styles.greeting}>Good Morning, {user?.name || "Alex"}!</Text>
+                    <Text style={styles.subGreeting}>Discover new recipes tailored just for you.</Text>
+                </View>
 
-            {/* Recents Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recents</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {mockRecentRecipes.map((recipe) => (
-                        <TouchableOpacity
-                            key={recipe.id}
-                            style={styles.recipeCard}
-                            onPress={() => handleRecipePress(recipe)}
-                        >
-                            <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
-                            <View style={styles.recipeInfo}>
-                                <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                                <View style={styles.recipeMeta}>
-                                    <View style={styles.metaItem}>
-                                        <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
-                                        <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
-                                    </View>
-                                    {recipe.timingTag && (
-                                        <View style={styles.tag}>
-                                            <Text style={styles.tagText}>{recipe.timingTag}</Text>
+                {/* Recents Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Recents</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                        {mockRecentRecipes.map((recipe) => (
+                            <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
+                                <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
+                                <View style={styles.recipeInfo}>
+                                    <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                                    <View style={styles.recipeMeta}>
+                                        <View style={styles.metaItem}>
+                                            <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                            <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
                                         </View>
-                                    )}
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Popular Picks Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Popular Picks</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {mockPopularRecipes.map((recipe) => (
-                        <TouchableOpacity
-                            key={recipe.id}
-                            style={styles.recipeCard}
-                            onPress={() => handleRecipePress(recipe)}
-                        >
-                            <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
-                            <View style={styles.recipeInfo}>
-                                <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                                <Text style={styles.recipeDescription}>
-                                    {recipe.id === "3"
-                                        ? "A simple, quick, and satisfying breakfast."
-                                        : "Juicy chicken with lemon and veggies, all on one pan."}
-                                </Text>
-                                <View style={styles.recipeMeta}>
-                                    <View style={styles.metaItem}>
-                                        <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
-                                        <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
-                                    </View>
-                                    <View style={styles.metaItem}>
-                                        <MaterialIcons name="star" size={14} color={colors.textMuted} />
-                                        <Text style={styles.metaText}>4.9 (124)</Text>
+                                        {recipe.timingTag && (
+                                            <View style={styles.tag}>
+                                                <Text style={styles.tagText}>{recipe.timingTag}</Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
 
-            {/* Bottom spacing for tab bar */}
-            <View style={{ height: 100 }} />
-        </ScrollView>
+                {/* Popular Picks Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Popular Picks</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                        {mockPopularRecipes.map((recipe) => (
+                            <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
+                                <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
+                                <View style={styles.recipeInfo}>
+                                    <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                                    <Text style={styles.recipeDescription}>
+                                        {recipe.id === "3"
+                                            ? "A simple, quick, and satisfying breakfast."
+                                            : "Juicy chicken with lemon and veggies, all on one pan."}
+                                    </Text>
+                                    <View style={styles.recipeMeta}>
+                                        <View style={styles.metaItem}>
+                                            <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                            <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
+                                        </View>
+                                        <View style={styles.metaItem}>
+                                            <MaterialIcons name="star" size={14} color={colors.textMuted} />
+                                            <Text style={styles.metaText}>4.9 (124)</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Bottom spacing for tab bar */}
+                <View style={{ height: 100 }} />
+            </ScrollView>
 
             {/* Floating Generate Recipe Button */}
             <TouchableOpacity style={styles.floatingButton} onPress={handleGenerateRecipe}>
                 <MaterialIcons name="auto-awesome" size={22} color={colors.white} />
                 <Text style={styles.floatingText}>Generate Recipe</Text>
             </TouchableOpacity>
-            
         </View>
     );
 }
