@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
@@ -13,6 +13,8 @@ export default function StepDetail() {
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const router = useRouter();
     const [showProgress, setShowProgress] = useState(false);
+    const [stepImageUrl, setStepImageUrl] = useState<string | null>(null);
+    const [imageLoading, setImageLoading] = useState(true);
 
     // Check both favorites and myRecipes
     let recipe = favorites.find((r: any) => r.id === id);
@@ -30,6 +32,67 @@ export default function StepDetail() {
 
     const current = recipe.steps.find((s: any) => String(s.stepNumber) === step) || recipe.steps[0];
     const idx = recipe.steps.indexOf(current);
+    
+    // Generate image for current step
+    useEffect(() => {
+        const generateStepImage = async () => {
+            if (current.image) {
+                setStepImageUrl(current.image);
+                setImageLoading(false);
+                return;
+            }
+
+            // Generate image based on step text
+            try {
+                setImageLoading(true);
+                
+                // Extract key actions/verbs from step text for better image matching
+                const stepText = current.text.toLowerCase();
+                const stepWords = stepText.split(' ');
+                
+                // Common cooking actions that make good image search terms
+                const cookingActions = ['chop', 'slice', 'dice', 'mince', 'mix', 'stir', 'whisk', 'beat', 
+                                       'fold', 'knead', 'roll', 'cut', 'peel', 'grate', 'blend', 'pour',
+                                       'heat', 'boil', 'simmer', 'fry', 'sauté', 'bake', 'roast', 'grill',
+                                       'season', 'marinate', 'coat', 'garnish', 'serve', 'arrange'];
+                
+                // Find cooking action in step
+                const action = stepWords.find(word => cookingActions.includes(word)) || 'cooking';
+                
+                // Extract main ingredient (usually nouns after the action)
+                const ingredientIndex = stepWords.findIndex(word => cookingActions.includes(word)) + 1;
+                const ingredient = stepWords[ingredientIndex] || '';
+                
+                // Create specific search term for this step
+                const recipeName = recipe.title.split(' ')[0]; // Use first word of recipe name
+                const stepNumber = current.stepNumber;
+                
+                // Build search query with step-specific details and unique seed
+                const searchQuery = `${action} ${ingredient} ${recipeName} food cooking`.replace(/\s+/g, '+');
+                
+                // Use Pollinations AI with step-specific prompt for unique images
+                const pollinationsPrompt = encodeURIComponent(
+                    `${action} ${ingredient} for ${recipe.title}, step ${stepNumber}, professional food photography, close-up cooking action`
+                );
+                const seed = stepNumber * 1000 + recipe.title.length; // Unique seed per step
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${pollinationsPrompt}?width=800&height=600&nologo=true&seed=${seed}`;
+                
+                // Use Unsplash as fallback with step-specific query
+                const unsplashUrl = `https://source.unsplash.com/800x600/?${searchQuery}&sig=${stepNumber}`;
+                
+                console.log(`🎨 Step ${stepNumber} image:`, { action, ingredient, pollinationsUrl, unsplashUrl });
+                
+                // Try Pollinations first for AI-generated step-specific images
+                setStepImageUrl(pollinationsUrl);
+                setImageLoading(false);
+            } catch (error) {
+                console.error('Error generating step image:', error);
+                setImageLoading(false);
+            }
+        };
+
+        generateStepImage();
+    }, [step, current.text, current.stepNumber, recipe.title]);
     
     const go = (n: number) => {
         const next = recipe.steps[idx + n];
@@ -60,7 +123,7 @@ export default function StepDetail() {
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Step Content */}
                 <View style={styles.stepContainer}>
-                    <Text style={styles.stepTitle}>Beat 3 eggs with a pinch of salt.</Text>
+                    <Text style={styles.stepTitle}>{current.text}</Text>
                     
                     {/* Listen Button */}
                     <TouchableOpacity style={styles.listenButton}>
@@ -69,18 +132,37 @@ export default function StepDetail() {
                     </TouchableOpacity>
 
                     {/* Step Image */}
-                    {current.image ? (
-                        <Image source={{ uri: current.image }} style={styles.stepImage} />
-                    ) : (
-                        <View style={styles.stepImagePlaceholder}>
+                    <View style={styles.stepImageContainer}>
+                        {imageLoading ? (
+                            <View style={styles.stepImagePlaceholder}>
+                                <ActivityIndicator size="large" color={colors.accent} />
+                                <Text style={styles.loadingImageText}>Loading image...</Text>
+                            </View>
+                        ) : stepImageUrl ? (
                             <Image 
-                                source={{ uri: "https://images.unsplash.com/photo-1587486937453-1af30a0a81fc?w=800" }} 
+                                source={{ uri: stepImageUrl }} 
                                 style={styles.stepImage}
+                                resizeMode="cover"
+                                onError={() => {
+                                    console.log('Image load error, using fallback');
+                                    setStepImageUrl('https://source.unsplash.com/800x600/?cooking,food');
+                                }}
                             />
+                        ) : (
+                            <View style={styles.stepImagePlaceholder}>
+                                <MaterialIcons name="image" size={64} color="#ccc" />
+                                <Text style={styles.noImageText}>No image available</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Additional instruction text if needed */}
+                    {current.text.length > 100 && (
+                        <View style={styles.instructionBox}>
+                            <Text style={styles.instructionLabel}>Detailed Instructions:</Text>
+                            <Text style={styles.stepInstruction}>{current.text}</Text>
                         </View>
                     )}
-
-                    <Text style={styles.stepInstruction}>{current.text}</Text>
                 </View>
             </ScrollView>
 
@@ -263,19 +345,46 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginBottom: 20,
     },
+    stepImageContainer: {
+        width: "100%",
+        marginBottom: 20,
+    },
     stepImagePlaceholder: {
         width: "100%",
         height: 240,
         borderRadius: 16,
-        marginBottom: 20,
         backgroundColor: "#F5F5F5",
-        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    loadingImageText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    noImageText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.textMuted,
+    },
+    instructionBox: {
+        marginTop: 20,
+        padding: 16,
+        backgroundColor: "#FFF5F0",
+        borderRadius: 12,
+        borderLeftWidth: 4,
+        borderLeftColor: colors.accent,
+    },
+    instructionLabel: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.accent,
+        marginBottom: 8,
     },
     stepInstruction: {
         fontSize: 16,
         lineHeight: 24,
         color: colors.textSecondary,
-        textAlign: "center",
     },
     navigationContainer: { 
         position: "absolute",
