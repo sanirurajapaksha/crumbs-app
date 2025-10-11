@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, useLocalSearchParams, router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import { MacroStrip } from "../../components/MacroStrip";
 import { ModalSheet } from "../../components/ModalSheet";
 import { StoreState, useStore } from "../../store/useStore";
@@ -19,6 +19,8 @@ export default function RecipeDetail() {
     const [showBoost, setShowBoost] = useState(false);
     const [showSwap, setShowSwap] = useState(false);
     const [showRegen, setShowRegen] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         // Check in favorites first, then myRecipes
@@ -27,7 +29,11 @@ export default function RecipeDetail() {
             found = myRecipes.find((r: Recipe) => r.id === id);
         }
         if (found) {
+            console.log('Recipe found:', found.title);
+            console.log('Hero Image URL:', found.heroImage);
             setRecipe(found);
+            setImageError(false); // Reset error state when recipe changes
+            setImageLoading(true); // Reset loading state
         } else {
             // fallback sample
             setRecipe({ 
@@ -88,10 +94,76 @@ export default function RecipeDetail() {
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-                {recipe.heroImage && <Image source={{ uri: recipe.heroImage }} style={styles.hero} />}
+                {/* Recipe Image */}
+                {recipe.heroImage && !imageError ? (
+                    <View style={styles.heroContainer}>
+                        <Image 
+                            source={{ 
+                                uri: recipe.heroImage,
+                                cache: 'force-cache'
+                            }} 
+                            style={styles.hero}
+                            resizeMode="cover"
+                            onLoadStart={() => {
+                                console.log('Image loading started:', recipe.heroImage);
+                                setImageLoading(true);
+                            }}
+                            onLoad={() => {
+                                console.log('Image loaded successfully');
+                                setImageLoading(false);
+                            }}
+                            onError={(error) => {
+                                console.log('Image load error:', error.nativeEvent.error);
+                                console.log('Failed URL:', recipe.heroImage);
+                                setImageLoading(false);
+                                setImageError(true);
+                            }}
+                        />
+                        {imageLoading && (
+                            <View style={styles.imageLoadingOverlay}>
+                                <ActivityIndicator size="large" color={colors.accent} />
+                                <Text style={styles.loadingText}>Loading image...</Text>
+                            </View>
+                        )}
+                    </View>
+                ) : (
+                    <View style={[styles.hero, styles.placeholderHero]}>
+                        <MaterialIcons name="restaurant" size={64} color="#ccc" />
+                        {imageError && (
+                            <Text style={styles.imageErrorText}>Image unavailable</Text>
+                        )}
+                    </View>
+                )}
                 
                 <View style={styles.contentCard}>
                     <Text style={styles.title}>{recipe.title}</Text>
+                    
+                    {/* Recipe Summary */}
+                    <View style={styles.summarySection}>
+                        <View style={styles.summaryItem}>
+                            <MaterialIcons name="schedule" size={20} color={colors.accent} />
+                            <Text style={styles.summaryLabel}>Time</Text>
+                            <Text style={styles.summaryValue}>{recipe.cookTimeMin || 30} min</Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryItem}>
+                            <MaterialIcons name="restaurant-menu" size={20} color={colors.accent} />
+                            <Text style={styles.summaryLabel}>Servings</Text>
+                            <Text style={styles.summaryValue}>{recipe.servings || 2}</Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryItem}>
+                            <MaterialIcons name="fact-check" size={20} color={colors.accent} />
+                            <Text style={styles.summaryLabel}>Ingredients</Text>
+                            <Text style={styles.summaryValue}>{recipe.ingredients.length}</Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryItem}>
+                            <MaterialIcons name="format-list-numbered" size={20} color={colors.accent} />
+                            <Text style={styles.summaryLabel}>Steps</Text>
+                            <Text style={styles.summaryValue}>{recipe.steps.length}</Text>
+                        </View>
+                    </View>
                     
                     {/* Nutrition Section */}
                     <View style={styles.nutritionSection}>
@@ -102,6 +174,39 @@ export default function RecipeDetail() {
                     </View>
                     
                     <MacroStrip recipe={recipe} />
+                    
+                    {/* Ingredients Section */}
+                    <View style={styles.detailSection}>
+                        <Text style={styles.sectionTitle}>Ingredients</Text>
+                        {recipe.ingredients.map((ingredient, index) => (
+                            <View key={index} style={styles.ingredientItem}>
+                                <View style={styles.bulletPoint} />
+                                <Text style={styles.ingredientText}>
+                                    {ingredient.qty ? `${ingredient.qty} ` : ''}{ingredient.name}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                    
+                    {/* Steps Summary */}
+                    <View style={styles.detailSection}>
+                        <Text style={styles.sectionTitle}>Cooking Steps Summary</Text>
+                        {recipe.steps.slice(0, 3).map((step, index) => (
+                            <View key={index} style={styles.stepSummaryItem}>
+                                <View style={styles.stepNumber}>
+                                    <Text style={styles.stepNumberText}>{step.stepNumber}</Text>
+                                </View>
+                                <Text style={styles.stepText} numberOfLines={2}>
+                                    {step.text}
+                                </Text>
+                            </View>
+                        ))}
+                        {recipe.steps.length > 3 && (
+                            <Text style={styles.moreStepsText}>
+                                +{recipe.steps.length - 3} more steps
+                            </Text>
+                        )}
+                    </View>
                     
                     {recipe.allergyList && recipe.allergyList.length > 0 && (
                         <View style={styles.allergyCard}>
@@ -200,6 +305,39 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
     },
+    heroContainer: {
+        position: 'relative',
+        width: '100%',
+        height: 300,
+    },
+    imageLoadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.accent,
+        fontWeight: '600',
+    },
+    placeholderHero: {
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f5f5f5",
+    },
+    imageErrorText: {
+        marginTop: 8,
+        fontSize: 12,
+        color: '#999',
+    },
     contentCard: {
         backgroundColor: "#fff",
         marginTop: -24,
@@ -213,6 +351,36 @@ const styles = StyleSheet.create({
         fontWeight: "700", 
         color: colors.textPrimary,
         marginBottom: 16,
+    },
+    summarySection: {
+        flexDirection: "row",
+        backgroundColor: "#FFF5F0",
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 20,
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    summaryItem: {
+        alignItems: "center",
+        flex: 1,
+    },
+    summaryLabel: {
+        fontSize: 11,
+        color: colors.textSecondary,
+        marginTop: 4,
+        fontWeight: "600",
+    },
+    summaryValue: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.textPrimary,
+        marginTop: 2,
+    },
+    summaryDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: "#E0E0E0",
     },
     nutritionSection: {
         flexDirection: "row",
@@ -235,6 +403,66 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "600",
         color: colors.accent,
+    },
+    detailSection: {
+        marginTop: 24,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: colors.textPrimary,
+        marginBottom: 12,
+    },
+    ingredientItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+        paddingLeft: 8,
+    },
+    bulletPoint: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.accent,
+        marginRight: 12,
+    },
+    ingredientText: {
+        fontSize: 15,
+        color: colors.textPrimary,
+        flex: 1,
+    },
+    stepSummaryItem: {
+        flexDirection: "row",
+        marginBottom: 12,
+        alignItems: "flex-start",
+    },
+    stepNumber: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.accent,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
+    },
+    stepNumberText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 14,
+    },
+    stepText: {
+        fontSize: 14,
+        color: colors.textPrimary,
+        flex: 1,
+        lineHeight: 20,
+        paddingTop: 6,
+    },
+    moreStepsText: {
+        fontSize: 14,
+        color: colors.accent,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 8,
     },
     allergyCard: {
         flexDirection: "row",

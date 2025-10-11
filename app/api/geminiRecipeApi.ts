@@ -402,27 +402,48 @@ function parseGeminiResponse(responseText: string): GeminiRecipeResponse {
 // ============================================================================
 
 /**
- * Generate hero image using Pollinations.AI (free, no API key required)
+ * Generate hero image using multiple image services with fallbacks
  */
 export async function generateRecipeImage(recipeName: string): Promise<string | null> {
     try {
-        const prompt = encodeURIComponent(
-            `Professional food photography of ${recipeName}, high resolution, appetizing, natural lighting, restaurant quality, delicious`
-        );
+        // Method 1: Try Unsplash Source (most reliable with React Native)
+        const cleanName = recipeName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        const searchTerm = encodeURIComponent(cleanName + ' food');
         
-        // Pollinations.AI URL-based API (returns image directly)
-        const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=768&nologo=true&seed=${Date.now()}`;
+        // Unsplash Source - provides direct image URLs that React Native handles well
+        const unsplashUrl = `https://source.unsplash.com/800x600/?${searchTerm}`;
         
-        // Test if the image is accessible
-        const response = await fetch(imageUrl, { method: 'HEAD' });
-        if (response.ok) {
-            return imageUrl;
+        console.log('🎨 Trying Unsplash for image...');
+        try {
+            const unsplashResponse = await fetch(unsplashUrl, { method: 'HEAD' });
+            if (unsplashResponse.ok) {
+                console.log('✅ Unsplash image found');
+                return unsplashUrl;
+            }
+        } catch (e) {
+            console.log('⚠️  Unsplash failed, trying Pollinations...');
         }
         
-        console.warn('Pollinations.AI image generation failed, using placeholder');
+        // Method 2: Fallback to Pollinations with simpler parameters
+        const prompt = encodeURIComponent(`${cleanName} food`);
+        const seed = Math.abs(cleanName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10000);
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=600&nologo=true&seed=${seed}`;
+        
+        console.log('🎨 Trying Pollinations...');
+        const pollinationsResponse = await fetch(pollinationsUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'image/*' },
+        });
+        
+        if (pollinationsResponse.ok) {
+            console.log('✅ Pollinations image generated');
+            return pollinationsUrl;
+        }
+        
+        console.warn('⚠️  All image services failed');
         return null;
     } catch (error) {
-        console.error('Error generating recipe image:', error);
+        console.error('❌ Error generating recipe image:', error);
         return null;
     }
 }
