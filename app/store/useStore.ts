@@ -9,12 +9,12 @@ import {
     sendPasswordReset,
     updateUserProfileInFirestore,
 } from "../api/auth";
-import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
+import { generateRecipeFromPantry } from "../api/mockApi";
+import { postCommunityPost, getCommunityPosts } from "../api/post-api";
 import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { postCommunityPost, getCommunityPosts } from "../api/post-api";
 
 export interface StoreState {
     user: User | null;

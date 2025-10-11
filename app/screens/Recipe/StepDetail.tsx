@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
 import { colors } from "../../theme/colors";
+import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get("window");
 
@@ -15,6 +16,8 @@ export default function StepDetail() {
     const [showProgress, setShowProgress] = useState(false);
     const [stepImageUrl, setStepImageUrl] = useState<string | null>(null);
     const [imageLoading, setImageLoading] = useState(true);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [showVoiceCommands, setShowVoiceCommands] = useState(false);
 
     // Check both favorites and myRecipes
     let recipe = favorites.find((r: any) => r.id === id);
@@ -94,6 +97,54 @@ export default function StepDetail() {
         generateStepImage();
     }, [step, current.text, current.stepNumber, recipe.title]);
     
+    // Text-to-Speech functionality
+    const handleSpeak = async () => {
+        if (isSpeaking) {
+            // Stop speaking
+            await Speech.stop();
+            setIsSpeaking(false);
+            setShowVoiceCommands(false);
+        } else {
+            // Start speaking
+            setIsSpeaking(true);
+            const textToSpeak = `Step ${current.stepNumber}. ${current.text}`;
+            
+            Speech.speak(textToSpeak, {
+                language: 'en-US',
+                pitch: 1.0,
+                rate: 0.85,
+                onDone: () => {
+                    setIsSpeaking(false);
+                    // Show voice command buttons after speech ends
+                    setShowVoiceCommands(true);
+                },
+                onStopped: () => {
+                    setIsSpeaking(false);
+                    setShowVoiceCommands(false);
+                },
+                onError: (error) => {
+                    console.error('Speech error:', error);
+                    setIsSpeaking(false);
+                    setShowVoiceCommands(false);
+                    Alert.alert('Speech Error', 'Failed to read instructions');
+                }
+            });
+        }
+    };
+
+    // Voice command handlers
+    const handleVoiceCommand = (command: 'next' | 'back' | 'repeat') => {
+        setShowVoiceCommands(false);
+        
+        if (command === 'next') {
+            go(1);
+        } else if (command === 'back') {
+            go(-1);
+        } else if (command === 'repeat') {
+            handleSpeak();
+        }
+    };
+    
     const go = (n: number) => {
         const next = recipe.steps[idx + n];
         if (next) {
@@ -160,10 +211,54 @@ export default function StepDetail() {
                     </Text>
 
                     {/* Listen Button */}
-                    <TouchableOpacity style={styles.listenButton}>
-                        <MaterialIcons name="volume-up" size={20} color={colors.accent} />
-                        <Text style={styles.listenText}>Listen to Instructions</Text>
+                    <TouchableOpacity 
+                        style={[styles.listenButton, isSpeaking && styles.listenButtonActive]} 
+                        onPress={handleSpeak}
+                    >
+                        <MaterialIcons 
+                            name={isSpeaking ? "volume-off" : "volume-up"} 
+                            size={20} 
+                            color={isSpeaking ? "#fff" : colors.accent} 
+                        />
+                        <Text style={[styles.listenText, isSpeaking && styles.listenTextActive]}>
+                            {isSpeaking ? "Stop Reading" : "Listen to Instructions"}
+                        </Text>
                     </TouchableOpacity>
+
+                    {/* Voice Command Buttons */}
+                    {showVoiceCommands && (
+                        <View style={styles.voiceCommandsContainer}>
+                            <Text style={styles.voiceCommandsTitle}>What would you like to do?</Text>
+                            <View style={styles.voiceCommandButtons}>
+                                <TouchableOpacity 
+                                    style={[styles.voiceCommandButton, idx === 0 && styles.voiceCommandButtonDisabled]} 
+                                    onPress={() => handleVoiceCommand('back')}
+                                    disabled={idx === 0}
+                                >
+                                    <MaterialIcons name="arrow-back" size={20} color={idx === 0 ? "#ccc" : colors.accent} />
+                                    <Text style={[styles.voiceCommandButtonText, idx === 0 && styles.voiceCommandButtonTextDisabled]}>
+                                        Previous
+                                    </Text>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                    style={styles.voiceCommandButton} 
+                                    onPress={() => handleVoiceCommand('repeat')}
+                                >
+                                    <MaterialIcons name="replay" size={20} color={colors.accent} />
+                                    <Text style={styles.voiceCommandButtonText}>Repeat</Text>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                    style={[styles.voiceCommandButton, styles.voiceCommandButtonPrimary]} 
+                                    onPress={() => handleVoiceCommand('next')}
+                                >
+                                    <Text style={styles.voiceCommandButtonTextPrimary}>Next</Text>
+                                    <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Detailed instruction text */}
                     <View style={styles.instructionBox}>
@@ -350,10 +445,67 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         gap: 8,
     },
+    listenButtonActive: {
+        backgroundColor: colors.accent,
+    },
     listenText: {
         fontSize: 16,
         fontWeight: "600",
         color: colors.accent,
+    },
+    listenTextActive: {
+        color: "#fff",
+    },
+    voiceCommandsContainer: {
+        backgroundColor: "#F8F8F8",
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 20,
+    },
+    voiceCommandsTitle: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    voiceCommandButtons: {
+        flexDirection: "row",
+        gap: 10,
+        justifyContent: "space-between",
+    },
+    voiceCommandButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#fff",
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        gap: 6,
+        borderWidth: 1.5,
+        borderColor: "#E0E0E0",
+    },
+    voiceCommandButtonPrimary: {
+        backgroundColor: colors.accent,
+        borderColor: colors.accent,
+    },
+    voiceCommandButtonDisabled: {
+        opacity: 0.4,
+    },
+    voiceCommandButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.textPrimary,
+    },
+    voiceCommandButtonTextPrimary: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#fff",
+    },
+    voiceCommandButtonTextDisabled: {
+        color: "#ccc",
     },
     stepImage: {
         width: "100%",
