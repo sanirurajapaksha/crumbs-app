@@ -17,6 +17,7 @@ export default function PostPage() {
     const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
     const title = post?.name;
     const author = post?.authorName;
+    const avatarURL = post?.authorAvatarUrl;
     const when = timeAgo(post?.createdAt);
     const desc = post?.description;
     const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
@@ -41,7 +42,7 @@ export default function PostPage() {
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.authorRow}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarTxt}>{author?.charAt(0)}</Text>
+                            <Image source={{ uri: avatarURL }} style={{ width: 32, height: 32, borderRadius: 16 }} />
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.authorName}>{author}</Text>

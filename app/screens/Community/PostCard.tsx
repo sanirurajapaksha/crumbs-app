@@ -18,6 +18,7 @@ function timeAgo(iso?: string) {
 
 export default function PostCard(posts: CommunityPost) {
     const hero = posts?.imageURL;
+    const avatarURL = posts?.authorAvatarUrl;
     const authorName = posts.authorName;
     const handle = `@${(posts.authorName || "cook").replace(/\s+/g, "_")}`;
     const title = posts.name?.length > 0 ? posts.name : "Shared a tasty dish";
@@ -32,7 +33,7 @@ export default function PostCard(posts: CommunityPost) {
                     <View style={styles.cardBody}>
                         <View style={styles.authorRow}>
                             <View style={styles.avatar}>
-                                <Text style={styles.avatarTxt}>{authorName?.charAt(0).toUpperCase()}</Text>
+                                <Image source={{ uri: avatarURL }} style={{ width: 32, height: 32, borderRadius: 16 }} />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.authorName}>{authorName}</Text>
