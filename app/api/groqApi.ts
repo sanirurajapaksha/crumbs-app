@@ -86,7 +86,7 @@ export async function analyzeImageForPantryItems(base64Image: string): Promise<V
                 items = parsed.items || [];
             }
         } catch (parseError) {
-            console.log("JSON parsing failed, extracting items manually from:", response,parseError);
+            console.log("JSON parsing failed, extracting items manually from:", response, parseError);
             // Fallback: extract items manually from text response
             items = extractItemsFromText(response);
         }
@@ -157,7 +157,7 @@ export async function transcribeAudioForPantryItems(audioUri: string): Promise<A
                 items = parsed.items || [];
             }
         } catch (parseError) {
-            console.log("JSON parsing failed, extracting items manually from:", responseText,parseError);
+            console.log("JSON parsing failed, extracting items manually from:", responseText, parseError);
             items = extractItemsFromText(responseText);
         }
 
@@ -205,37 +205,50 @@ function extractItemsFromText(text: string): DetectedItem[] {
 
 // Categorize a single ingredient using AI
 export async function categorizeIngredient(ingredientName: string): Promise<string> {
+    console.log(`[categorizeIngredient] Starting categorization for: "${ingredientName}"`);
+
     try {
+        if (!GROQ_API_KEY) {
+            console.error("[categorizeIngredient] GROQ_API_KEY is not set");
+            return "other";
+        }
+
+        console.log("[categorizeIngredient] Calling Groq API...");
         const completion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "user",
-                    content: `Categorize the following food item into one of these specific categories. Choose the MOST APPROPRIATE category:
-                    - vegetables
-                    - fruits
-                    - dairy & eggs
-                    - meat & poultry
-                    - seafood
-                    - grains & cereals
-                    - legumes & nuts
-                    - spices & herbs
-                    - oils & condiments
-                    - beverages
-                    - baking & desserts
-                    - frozen foods
-                    - canned goods
+                    content: `You are a food categorization assistant. Categorize the following food item into EXACTLY ONE of these categories:
 
-                    Food item: "${ingredientName}"
+vegetables
+fruits
+dairy & eggs
+meat & poultry
+seafood
+grains & cereals
+legumes & nuts
+spices & herbs
+oils & condiments
+beverages
+baking & desserts
+frozen foods
+canned goods
 
-                    IMPORTANT: You must select one of the categories above. Do not use "other" or any category not in this list.
-                    Respond with only the category name from the list above, nothing else.
+Food item: "${ingredientName}"
 
-                    Examples:
-                    - "tomato" → vegetables
-                    - "chicken breast" → meat & poultry
-                    - "olive oil" → oils & condiments
-                    - "flour" → baking & desserts
-                    - "rice" → grains & cereals`,
+RULES:
+1. Respond with ONLY the category name, nothing else
+2. Use lowercase
+3. Match the exact category name from the list above
+4. Do not add explanations, punctuation, or extra words
+
+Examples:
+tomato → vegetables
+chicken → meat & poultry
+chicken breast → meat & poultry
+olive oil → oils & condiments
+flour → baking & desserts
+rice → grains & cereals`,
                 },
             ],
             model: "llama-3.1-8b-instant",
@@ -243,9 +256,24 @@ export async function categorizeIngredient(ingredientName: string): Promise<stri
             max_completion_tokens: 50,
         });
 
-        const category = completion.choices[0]?.message?.content?.trim().toLowerCase();
+        const rawCategory = completion.choices[0]?.message?.content;
 
-        // Validate the category is one of our accepted categories (without "other")
+        // Clean up the response - remove any extra whitespace, newlines, quotes, etc.
+        const cleanedCategory = rawCategory
+            ?.trim()
+            .toLowerCase()
+            .replace(/^["']|["']$/g, "") // Remove quotes
+            .replace(/\n.*/g, "") // Remove everything after first newline
+            .replace(/→/g, "") // Remove arrow if present
+            .trim();
+
+        console.log("Categorization Debug:", {
+            ingredientName,
+            rawCategory,
+            cleanedCategory,
+        });
+
+        // Validate the category is one of our accepted categories
         const validCategories = [
             "vegetables",
             "fruits",
@@ -262,22 +290,46 @@ export async function categorizeIngredient(ingredientName: string): Promise<stri
             "canned goods",
         ];
 
-        // Only use "other" if the AI response is truly invalid or empty
-        return category && validCategories.includes(category) ? category : "other";
+        // Check if the cleaned category is valid
+        const result = cleanedCategory && validCategories.includes(cleanedCategory) ? cleanedCategory : "other";
+
+        console.log("Final category result:", result);
+        return result;
     } catch (error) {
-        console.error("Error categorizing ingredient:", error);
+        console.error("[categorizeIngredient] Error categorizing ingredient:", error);
+        console.error("[categorizeIngredient] Error details:", {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+        });
         return "other"; // Default fallback category
     }
 }
 
-// Convert detected items to PantryItem format
-export function convertToPantryItems(detectedItems: DetectedItem[], userId?: string): PantryItem[] {
-    return detectedItems.map((item) => ({
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        userId,
-        name: item.name,
-        category: item.category || "Other",
-        quantity: item.quantity || "1",
-        addedAt: new Date().toISOString(),
-    }));
+// Convert detected items to PantryItem format with AI categorization
+export async function convertToPantryItems(detectedItems: DetectedItem[], userId?: string): Promise<PantryItem[]> {
+    // Map each item and ensure it has a proper category using AI if needed
+    const itemPromises = detectedItems.map(async (item) => {
+        let category = item.category;
+
+        // If no category or category is "Other", use AI to categorize
+        if (!category || category.toLowerCase() === "other") {
+            try {
+                category = await categorizeIngredient(item.name);
+            } catch (error) {
+                console.error(`Failed to categorize ${item.name}, using fallback:`, error);
+                category = "other";
+            }
+        }
+
+        return {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            userId,
+            name: item.name,
+            category: category,
+            quantity: item.quantity || "1",
+            addedAt: new Date().toISOString(),
+        };
+    });
+
+    return Promise.all(itemPromises);
 }

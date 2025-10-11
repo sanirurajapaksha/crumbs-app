@@ -40,46 +40,42 @@ export default function ManualEntry() {
 
     const handleAddIngredient = async (name: string) => {
         if (name.trim()) {
+            console.log(`[ManualEntry] Adding ingredient: "${name.trim()}"`);
             setIsCategorizingIngredient(true);
             try {
                 // Get AI-generated category
+                console.log("[ManualEntry] Calling categorizeIngredient...");
                 const category = await categorizeIngredient(name.trim());
-                
+                console.log(`[ManualEntry] Received category: "${category}"`);
+
                 const newItem: IngredientItem = {
                     id: `${Date.now()}-${Math.random()}`,
                     name: name.trim(),
                     quantity: "1",
-                    category: category
+                    category: category,
                 };
-                setIngredients(prev => [...prev, newItem]);
+                setIngredients((prev) => [...prev, newItem]);
                 setNewIngredient("");
-                
-                // Show success message with category
-                if (category !== 'other') {
-                    Alert.alert(
-                        "Ingredient Added",
-                        `"${name.trim()}" has been categorized as "${category}" by AI.`,
-                        [{ text: "OK" }],
-                        { cancelable: true }
-                    );
-                }
+
+                // Show success message with category (always show for debugging)
+                Alert.alert("Ingredient Added", `"${name.trim()}" has been categorized as "${category}" by AI.`, [{ text: "OK" }], {
+                    cancelable: true,
+                });
             } catch (error) {
-                console.error('Error categorizing ingredient:', error);
+                console.error("[ManualEntry] Error categorizing ingredient:", error);
                 // Fallback to default category if API fails
                 const newItem: IngredientItem = {
                     id: `${Date.now()}-${Math.random()}`,
                     name: name.trim(),
                     quantity: "1",
-                    category: "other"
+                    category: "other",
                 };
-                setIngredients(prev => [...prev, newItem]);
+                setIngredients((prev) => [...prev, newItem]);
                 setNewIngredient("");
-                
-                Alert.alert(
-                    "Ingredient Added",
-                    `"${name.trim()}" has been added with default category (AI categorization failed).`,
-                    [{ text: "OK" }]
-                );
+
+                Alert.alert("Ingredient Added", `"${name.trim()}" has been added with default category (AI categorization failed).`, [
+                    { text: "OK" },
+                ]);
             } finally {
                 setIsCategorizingIngredient(false);
             }
@@ -87,7 +83,7 @@ export default function ManualEntry() {
     };
 
     const handleEditIngredient = (id: string) => {
-        const ingredient = ingredients.find(item => item.id === id);
+        const ingredient = ingredients.find((item) => item.id === id);
         if (ingredient) {
             setEditingIngredient(ingredient);
             setEditModalVisible(true);
@@ -95,35 +91,27 @@ export default function ManualEntry() {
     };
 
     const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
-        setIngredients(prev => 
-            prev.map(item => 
-                item.id === updatedIngredient.id ? updatedIngredient : item
-            )
-        );
+        setIngredients((prev) => prev.map((item) => (item.id === updatedIngredient.id ? updatedIngredient : item)));
         setEditModalVisible(false);
         setEditingIngredient(null);
     };
 
     const handleDeleteIngredient = (id: string) => {
-        Alert.alert(
-            "Delete Ingredient",
-            "Are you sure you want to remove this ingredient?",
-            [
-                { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Delete", 
-                    style: "destructive",
-                    onPress: () => {
-                        setIngredients(prev => prev.filter(item => item.id !== id));
-                    }
-                }
-            ]
-        );
+        Alert.alert("Delete Ingredient", "Are you sure you want to remove this ingredient?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => {
+                    setIngredients((prev) => prev.filter((item) => item.id !== id));
+                },
+            },
+        ]);
     };
 
     const handleAddToPantry = () => {
         // Convert ingredients to pantry items and add them
-        ingredients.forEach(ingredient => {
+        ingredients.forEach((ingredient) => {
             const pantryItem: PantryItem = {
                 id: `pantry-${ingredient.id}`,
                 name: ingredient.name,
@@ -135,11 +123,7 @@ export default function ManualEntry() {
             addPantryItem(pantryItem);
         });
 
-        Alert.alert(
-            "Success!",
-            `Added ${ingredients.length} items to your pantry.`,
-            [{ text: "OK", onPress: () => router.back() }]
-        );
+        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => router.back() }]);
     };
 
     return (
@@ -162,25 +146,15 @@ export default function ManualEntry() {
                             <View style={styles.ingredientInfo}>
                                 <Text style={styles.ingredientName}>{ingredient.name}</Text>
                                 <View style={styles.ingredientMeta}>
-                                    {ingredient.quantity && (
-                                        <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>
-                                    )}
-                                    {ingredient.category && (
-                                        <Text style={styles.ingredientCategory}>• {ingredient.category}</Text>
-                                    )}
+                                    {ingredient.quantity && <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>}
+                                    {ingredient.category && <Text style={styles.ingredientCategory}>• {ingredient.category}</Text>}
                                 </View>
                             </View>
                             <View style={styles.ingredientActions}>
-                                <TouchableOpacity 
-                                    onPress={() => handleEditIngredient(ingredient.id)}
-                                    style={styles.actionButton}
-                                >
+                                <TouchableOpacity onPress={() => handleEditIngredient(ingredient.id)} style={styles.actionButton}>
                                     <MaterialIcons name="edit" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
-                                <TouchableOpacity 
-                                    onPress={() => handleDeleteIngredient(ingredient.id)}
-                                    style={styles.actionButton}
-                                >
+                                <TouchableOpacity onPress={() => handleDeleteIngredient(ingredient.id)} style={styles.actionButton}>
                                     <MaterialIcons name="delete" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
                             </View>
@@ -217,7 +191,7 @@ export default function ManualEntry() {
                             onSubmitEditing={() => handleAddIngredient(newIngredient)}
                             editable={!isCategorizingIngredient}
                         />
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[styles.addNewButton, isCategorizingIngredient && styles.buttonDisabled]}
                             onPress={() => handleAddIngredient(newIngredient)}
                             disabled={isCategorizingIngredient}
@@ -229,20 +203,13 @@ export default function ManualEntry() {
                             )}
                         </TouchableOpacity>
                     </View>
-                    {isCategorizingIngredient && (
-                        <Text style={styles.categorizingText}>
-                            Categorizing ingredient with AI...
-                        </Text>
-                    )}
+                    {isCategorizingIngredient && <Text style={styles.categorizingText}>Categorizing ingredient with AI...</Text>}
                 </View>
             </ScrollView>
 
             {/* Add to Pantry Button */}
             <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={styles.addToPantryButton}
-                    onPress={handleAddToPantry}
-                >
+                <TouchableOpacity style={styles.addToPantryButton} onPress={handleAddToPantry}>
                     <Text style={styles.addToPantryText}>Add To Pantry</Text>
                 </TouchableOpacity>
             </View>
@@ -332,14 +299,14 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
     },
     ingredientMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
+        flexDirection: "row",
+        alignItems: "center",
+        flexWrap: "wrap",
     },
     ingredientCategory: {
         fontSize: 12,
         color: colors.accent,
-        fontWeight: '500',
+        fontWeight: "500",
         marginLeft: 4,
     },
     ingredientActions: {
@@ -425,10 +392,10 @@ const styles = StyleSheet.create({
         backgroundColor: colors.textMuted,
     },
     categorizingText: {
-        textAlign: 'center',
+        textAlign: "center",
         marginTop: 8,
         fontSize: 14,
         color: colors.textMuted,
-        fontStyle: 'italic',
+        fontStyle: "italic",
     },
 });
