@@ -7,6 +7,7 @@ import {
     subscribeToAuth,
     deleteAccount as fbDeleteAccount,
     sendPasswordReset,
+    updateUserProfileInFirestore,
 } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
@@ -49,6 +50,7 @@ export interface StoreState {
     postCommunity: (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => Promise<CommunityPost>;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     setHasOnboarded: () => void;
+    updateUserProfile: (updates: Partial<User>) => Promise<void>;
     // notification actions
     markNotificationAsRead: (id: string) => void;
     markAllNotificationsAsRead: () => void;
@@ -74,7 +76,10 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         set({ authLoading: true });
         try {
             const u = await loginWithEmail({ email, password });
-            set({ user: u });
+            // Preserve existing avatarUrl if present (from persisted store)
+            const currentUser = get().user;
+            const mergedUser = currentUser?.avatarUrl ? { ...u, avatarUrl: currentUser.avatarUrl } : u;
+            set({ user: mergedUser });
             if (u) router.replace("/(tabs)");
             return u;
         } finally {
@@ -125,8 +130,12 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     startAuthListener: () => {
         if (unsubscribeAuth) return; // idempotent
         unsubscribeAuth = subscribeToAuth((u) => {
-            if (u) set({ user: u });
-            else set({ user: null });
+            if (u) {
+                // Preserve local user data (like avatarUrl) when Firebase auth updates
+                const currentUser = get().user;
+                const mergedUser = currentUser ? { ...u, avatarUrl: currentUser.avatarUrl, bio: currentUser.bio } : u;
+                set({ user: mergedUser });
+            } else set({ user: null });
         });
     },
     addPantryItem: (item: PantryItem) => set({ pantryItems: [...get().pantryItems, item] }),
@@ -179,6 +188,30 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     },
     addNotification: (notification: Notification) => {
         set({ notifications: [notification, ...get().notifications] });
+    },
+    updateUserProfile: async (updates: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            // Handle undefined values (field deletion) by removing them from the merged object
+            const updatedUser = { ...currentUser };
+            Object.entries(updates).forEach(([key, value]) => {
+                if (value === undefined) {
+                    delete (updatedUser as any)[key];
+                } else {
+                    (updatedUser as any)[key] = value;
+                }
+            });
+            
+            // Update local state immediately for instant UI feedback
+            set({ user: updatedUser });
+            
+            // Persist to Firestore in the background
+            try {
+                await updateUserProfileInFirestore(currentUser.id, updates);
+            } catch (error) {
+                console.error("Failed to update user profile in Firestore:", error);
+            }
+        }
     },
 });
 

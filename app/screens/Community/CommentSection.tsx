@@ -1,15 +1,16 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Comment } from "@/app/types";
 
 export default function CommentSection(comments: Comment) {
+    // Use default avatar image
+    const avatarUrl = "https://shortifyme.co/815XJ";
+    
     return (
         <View style={styles.wrapper}>
             <View style={styles.row}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarTxt}>{comments.name.charAt(0)}</Text>
-                </View>
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <Text style={styles.name}>{comments.name}</Text>
@@ -30,11 +31,8 @@ const styles = StyleSheet.create({
         height: 32,
         borderRadius: 16,
         backgroundColor: colors.neutral200,
-        alignItems: "center",
-        justifyContent: "center",
         marginRight: 10,
     },
-    avatarTxt: { fontSize: 12, fontWeight: "700", color: colors.neutral800 },
     name: { fontSize: 13, fontWeight: "700", color: colors.textPrimary, marginRight: 8 },
     when: { fontSize: 11, color: colors.neutral600 },
     text: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },

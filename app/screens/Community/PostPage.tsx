@@ -13,6 +13,7 @@ export default function PostPage() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
+    const currentUser = useStore((s: StoreState) => s.user);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
 
     const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
@@ -22,6 +23,12 @@ export default function PostPage() {
     const desc =
         "This hearty spicy soup is packed with flavor and spice, perfect for a chilly evening. It's easy to make and can be customized with your favorite vegetables and spices.";
     const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
+
+    // Use default avatar image
+    const authorAvatarUrl = "https://shortifyme.co/815XJ";
+    
+    // Get current user's avatar or use default
+    const currentUserAvatarUrl = currentUser?.avatarUrl || "https://shortifyme.co/815XJ";
 
     const [comment, setComment] = useState("");
 
@@ -42,9 +49,7 @@ export default function PostPage() {
                 <ScrollView style={styles.sheet} contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.authorRow}>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarTxt}>{author.charAt(0)}</Text>
-                        </View>
+                        <Image source={{ uri: authorAvatarUrl }} style={styles.avatar} />
                         <View style={{ flex: 1 }}>
                             <Text style={styles.authorName}>{author}</Text>
                             <Text style={styles.when}>{when}</Text>
@@ -67,9 +72,7 @@ export default function PostPage() {
                 </ScrollView>
 
                 <View style={styles.inputBar}>
-                    <View style={styles.inputAvatar}>
-                        <Text style={styles.inputAvatarTxt}>Y</Text>
-                    </View>
+                    <Image source={{ uri: currentUserAvatarUrl }} style={styles.inputAvatar} />
                     <TextInput
                         style={styles.input}
                         placeholder="Add a comment..."
@@ -116,11 +119,8 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         backgroundColor: colors.neutral200,
-        alignItems: "center",
-        justifyContent: "center",
         marginRight: 12,
     },
-    avatarTxt: { color: colors.neutral800, fontWeight: "700" },
     authorName: { fontSize: 14, fontWeight: "700", color: colors.textPrimary },
     when: { fontSize: 12, color: colors.neutral600 },
     desc: { fontSize: 14, color: colors.textSecondary, marginBottom: 12 },
@@ -155,10 +155,7 @@ const styles = StyleSheet.create({
         height: 28,
         borderRadius: 14,
         backgroundColor: colors.neutral200,
-        alignItems: "center",
-        justifyContent: "center",
     },
-    inputAvatarTxt: { color: colors.neutral800, fontWeight: "700", fontSize: 12 },
     input: {
         flex: 1,
         backgroundColor: colors.neutral50,

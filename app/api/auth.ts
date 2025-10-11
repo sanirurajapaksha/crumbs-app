@@ -13,7 +13,7 @@ import {
     User as FirebaseUser,
 } from "firebase/auth";
 import { auth, db } from "../firebase/config";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import type { User } from "../types";
 
 // Map Firebase User to app User shape
@@ -70,7 +70,7 @@ export async function signupWithEmail({ name, email, password }: SignupParams): 
         const cred = await createUserWithEmailAndPassword(auth, email, password);
 
         // Create user profile in Firestore
-        setDoc(doc(db, "users", cred.user.uid), {
+        await setDoc(doc(db, "users", cred.user.uid), {
             name: name.trim(),
             email: email,
             createdAt: new Date().toISOString(),
@@ -78,7 +78,7 @@ export async function signupWithEmail({ name, email, password }: SignupParams): 
 
         // Set displayName immediately after account creation
         if (name?.trim()) {
-            updateProfile(cred.user, { displayName: name.trim() });
+            await updateProfile(cred.user, { displayName: name.trim() });
         }
 
         return toAppUser(cred.user);
@@ -97,9 +97,58 @@ export async function logout(): Promise<void> {
 
 // Optional: Observe auth state and map to app User
 export function subscribeToAuth(callback: (user: User | null) => void) {
-    return onAuthStateChanged(auth, (fbUser) => {
-        callback(fbUser ? toAppUser(fbUser) : null);
+    return onAuthStateChanged(auth, async (fbUser) => {
+        if (fbUser) {
+            // Fetch user profile from Firestore to get avatarUrl and other custom fields
+            try {
+                const userDoc = await getDoc(doc(db, "users", fbUser.uid));
+                const userData = userDoc.data();
+                const appUser = toAppUser(fbUser);
+                // Merge Firestore data with Firebase auth data
+                callback({
+                    ...appUser,
+                    avatarUrl: userData?.avatarUrl,
+                    bio: userData?.bio,
+                });
+            } catch (error) {
+                // Fallback to basic user data if Firestore fetch fails
+                callback(toAppUser(fbUser));
+            }
+        } else {
+            callback(null);
+        }
     });
+}
+
+// Update user profile in Firestore
+export async function updateUserProfileInFirestore(userId: string, updates: Partial<User>): Promise<void> {
+    try {
+        const userRef = doc(db, "users", userId);
+        
+        // Check if document exists first
+        const docSnap = await getDoc(userRef);
+        
+        if (!docSnap.exists()) {
+            // Document doesn't exist, create it with merge
+            await setDoc(userRef, updates, { merge: true });
+            return;
+        }
+        
+        // Filter out undefined values (to delete fields from Firestore)
+        const filteredUpdates: any = {};
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value !== undefined) {
+                filteredUpdates[key] = value;
+            } else {
+                // Use deleteField() to remove the field from Firestore
+                filteredUpdates[key] = deleteField();
+            }
+        });
+        
+        await updateDoc(userRef, filteredUpdates);
+    } catch (e) {
+        throw mapAuthError(e);
+    }
 }
 
 // Change password with reauthentication
