@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useStore, StoreState } from "../../store/useStore";
 import { useRouter } from "expo-router";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
+import { CommunityPost } from "@/app/types";
 
 export default function ShareRecipe() {
     const postCommunity = useStore((s: StoreState) => s.postCommunity);
     const user = useStore((s: StoreState) => s.user);
-    const [text, setText] = useState("");
     const [tags, setTags] = useState("");
     const [mealName, setMealName] = useState("");
     const [description, setDescription] = useState("");
@@ -17,12 +17,23 @@ export default function ShareRecipe() {
     const submit = async () => {
         if (!mealName.trim() || !description.trim()) return;
 
-        await postCommunity({
-            authorId: user?.id || "anon",
-            text: `${mealName}\n\n${description}`,
+        const newPost: CommunityPost = {
+            id: Math.random().toString(36).substring(2, 15),
+            authorId: user?.id as string,
+            imageURL: "", // to be implemented
+            name: mealName.trim(),
+            description: description.trim(),
             tags: tags.split(/[,\s]+/).filter(Boolean),
-        });
-        router.back();
+            createdAt: new Date().toISOString(),
+            likeCount: 0,
+            comments: [],
+        };
+
+        if (postCommunity(user?.id as string, newPost) != null) {
+            Alert.alert("Success", "Your meal has been shared!", [{ text: "OK", onPress: () => router.back() }]);
+        } else {
+            Alert.alert("Error", "There was an issue sharing your meal. Please try again later.", [{ text: "OK" }]);
+        }
     };
 
     const isSubmitDisabled = !mealName.trim() || !description.trim();
