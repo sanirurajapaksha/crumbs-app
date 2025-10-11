@@ -97,6 +97,9 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             set({ authLoading: false });
         }
     },
+    resetPassword: async (email: string) => {
+        await sendPasswordReset(email);
+    },
     signOut: async () => {
         set({ authLoading: true });
         try {
