@@ -14,10 +14,9 @@ export default function PostPage() {
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
-
     const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
     const title = post?.name;
-    const author = post?.authorId || "Sophia Carter";
+    const author = post?.authorName;
     const when = timeAgo(post?.createdAt);
     const desc = post?.description;
     const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
@@ -42,7 +41,7 @@ export default function PostPage() {
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.authorRow}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarTxt}>{author.charAt(0)}</Text>
+                            <Text style={styles.avatarTxt}>{author?.charAt(0)}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.authorName}>{author}</Text>
@@ -87,10 +86,15 @@ export default function PostPage() {
 }
 
 function timeAgo(iso?: string) {
-    if (!iso) return "3 days ago";
+    if (!iso) return "now";
     const diff = Date.now() - new Date(iso).getTime();
-    const days = Math.max(1, Math.floor(diff / (24 * 60 * 60 * 1000)));
-    return days === 1 ? "1 day ago" : `${days} days ago`;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "now";
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    const d = Math.floor(h / 24);
+    return `${d}d`;
 }
 
 const styles = StyleSheet.create({
