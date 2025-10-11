@@ -16,7 +16,7 @@ export default function PostPage() {
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
 
     const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
-    const title = post?.text;
+    const title = post?.name;
     const author = post?.authorId || "Sophia Carter";
     const when = timeAgo(post?.createdAt);
     const desc =

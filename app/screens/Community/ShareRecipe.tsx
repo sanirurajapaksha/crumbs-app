@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from "react-native";
 import { useStore, StoreState } from "../../store/useStore";
 import { useRouter } from "expo-router";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { CommunityPost } from "@/app/types";
+import * as ImagePicker from "expo-image-picker";
 
 export default function ShareRecipe() {
     const postCommunity = useStore((s: StoreState) => s.postCommunity);
@@ -12,6 +13,7 @@ export default function ShareRecipe() {
     const [tags, setTags] = useState("");
     const [mealName, setMealName] = useState("");
     const [description, setDescription] = useState("");
+    const [imageURL, setImageURL] = useState("");
     const router = useRouter();
 
     const submit = async () => {
@@ -20,7 +22,7 @@ export default function ShareRecipe() {
         const newPost: CommunityPost = {
             id: Math.random().toString(36).substring(2, 15),
             authorId: user?.id as string,
-            imageURL: "", // to be implemented
+            imageURL: imageURL,
             name: mealName.trim(),
             description: description.trim(),
             tags: tags.split(/[,\s]+/).filter(Boolean),
@@ -33,6 +35,23 @@ export default function ShareRecipe() {
             Alert.alert("Success", "Your meal has been shared!", [{ text: "OK", onPress: () => router.back() }]);
         } else {
             Alert.alert("Error", "There was an issue sharing your meal. Please try again later.", [{ text: "OK" }]);
+        }
+    };
+
+    const pickImageFromCamera = async () => {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissionResult.granted) {
+            Alert.alert("Permission Required", "You need to grant camera permission to take photos.");
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: "images" as any,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+        if (!result.canceled && result.assets[0]) {
+            setImageURL(result.assets[0].uri);
         }
     };
 
@@ -51,18 +70,23 @@ export default function ShareRecipe() {
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Meal Photo Placeholder */}
-                <View style={styles.photoSection}>
-                    <View style={styles.photoPlaceholder}>
-                        <Ionicons name="camera-outline" size={48} color={colors.neutral500} />
-                        <Text style={styles.photoPlaceholderText}>Add a photo of your meal</Text>
-                        <Text style={styles.photoSubtext}>Coming soon!</Text>
-                    </View>
-                </View>
+                <TouchableOpacity style={styles.photoSection} onPress={pickImageFromCamera}>
+                    {imageURL ? (
+                        <View style={styles.photoPlaceholder}>
+                            <Image source={{ uri: imageURL }} style={{ width: "100%", height: "100%", borderRadius: 12 }} />
+                        </View>
+                    ) : (
+                        <View style={styles.photoPlaceholder}>
+                            <Ionicons name="camera-outline" size={48} color={colors.neutral500} />
+                            <Text style={styles.photoPlaceholderText}>Add a photo of your meal</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
 
                 {/* Form Fields */}
                 <View style={styles.formSection}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Meal Name *</Text>
+                        <Text style={styles.label}>Post Caption *</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="What did you make?"

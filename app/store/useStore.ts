@@ -9,11 +9,11 @@ import {
     sendPasswordReset,
     updateUserProfileInFirestore,
 } from "../api/auth";
-import { generateRecipeFromPantry, getCommunityPosts } from "../api/mockApi";
+import { generateRecipeFromPantry } from "../api/mockApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { postCommunityPost } from "../api/post-api";
+import { postCommunityPost, getCommunityPosts } from "../api/post-api";
 
 export interface StoreState {
     user: User | null;
@@ -58,7 +58,23 @@ export interface StoreState {
     addNotification: (notification: Notification) => void;
 }
 
+export interface UtilFunctions {
+    loading: boolean;
+    error: string | null;
+    clearError: () => void;
+    setError: (msg: string) => void;
+    setLoading: (isLoading: boolean) => void;
+}
+
 let unsubscribeAuth: (() => void) | null = null;
+
+export const useUtilFunctions = create<UtilFunctions>()((set) => ({
+    loading: false,
+    error: null,
+    clearError: () => set({ error: null }),
+    setError: (msg: string) => set({ error: msg }),
+    setLoading: (isLoading: boolean) => set({ loading: isLoading }),
+}));
 
 const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () => StoreState) => ({
     user: null,
