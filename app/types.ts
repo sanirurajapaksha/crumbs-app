@@ -58,6 +58,8 @@ export interface Recipe {
 export interface CommunityPost {
     id: string;
     authorId: string;
+    authorName?: string;
+    authorAvatarUrl?: string;
     imageURL?: string;
     name: string;
     description: string;
