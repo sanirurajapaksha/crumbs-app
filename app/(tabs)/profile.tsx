@@ -20,8 +20,8 @@ export default function Profile() {
     const [activeTab, setActiveTab] = useState<TabType>("myRecipes");
 
     const showImagePickerOptions = () => {
-        const hasCustomAvatar = user?.avatarUrl && !user.avatarUrl.includes('shortifyme.co');
-        
+        const hasCustomAvatar = user?.avatarUrl && !user.avatarUrl.includes("shortifyme.co");
+
         const options: any[] = [
             {
                 text: "Take Photo",
@@ -47,17 +47,12 @@ export default function Profile() {
             style: "cancel",
         });
 
-        Alert.alert(
-            "Update Profile Picture",
-            "Choose an option",
-            options,
-            { cancelable: true }
-        );
+        Alert.alert("Update Profile Picture", "Choose an option", options, { cancelable: true });
     };
 
     const pickImageFromCamera = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-        
+
         if (!permissionResult.granted) {
             Alert.alert("Permission Required", "You need to grant camera permission to take photos.");
             return;
@@ -77,7 +72,7 @@ export default function Profile() {
 
     const pickImageFromGallery = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        
+
         if (!permissionResult.granted) {
             Alert.alert("Permission Required", "You need to grant gallery permission to choose photos.");
             return;
@@ -143,7 +138,7 @@ export default function Profile() {
             case "likedPosts":
                 return likedPosts.map((p) => ({
                     id: p.id,
-                    title: p.text.substring(0, 50),
+                    title: p.name.substring(0, 50),
                     image: p.imageURL || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
                 }));
             default:

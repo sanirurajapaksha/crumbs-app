@@ -111,6 +111,7 @@ export function subscribeToAuth(callback: (user: User | null) => void) {
                     bio: userData?.bio,
                 });
             } catch (error) {
+                console.error("Failed to fetch user profile from Firestore: ", error);
                 // Fallback to basic user data if Firestore fetch fails
                 callback(toAppUser(fbUser));
             }
