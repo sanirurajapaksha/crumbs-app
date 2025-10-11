@@ -1,9 +1,9 @@
 import { colors } from "@/app/theme/colors";
 import { CommunityPost } from "@/app/types";
 import { generateFoodImage } from "@/app/utils/imageUtils";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 function timeAgo(iso?: string) {
     if (!iso) return "now";
@@ -25,10 +25,6 @@ export default function PostCard(posts: CommunityPost) {
     const subtitle = posts.tags && posts.tags.length > 0 ? `Pro Tip: ${posts.tags.join(", ")}` : undefined;
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
-    
-    // Use default avatar image
-    const avatarUrl = "https://shortifyme.co/815XJ";
-    
     return (
         <Link href={{ pathname: "/screens/Community/PostPage", params: { id: posts.id } } as any} asChild>
             <TouchableOpacity activeOpacity={0.5}>
@@ -36,7 +32,9 @@ export default function PostCard(posts: CommunityPost) {
                     <Image source={{ uri: hero }} style={styles.hero} />
                     <View style={styles.cardBody}>
                         <View style={styles.authorRow}>
-                            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarTxt}>{authorName.charAt(0).toUpperCase()}</Text>
+                            </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.authorName}>{authorName}</Text>
                                 <Text style={styles.handle}>{handle}</Text>
@@ -83,8 +81,11 @@ const styles = StyleSheet.create({
         height: 32,
         borderRadius: 16,
         backgroundColor: colors.neutral200,
+        alignItems: "center",
+        justifyContent: "center",
         marginRight: 10,
     },
+    avatarTxt: { fontSize: 12, fontWeight: "700", color: colors.neutral700 },
     authorName: { fontSize: 13, fontWeight: "600", color: colors.textPrimary },
     handle: { fontSize: 11, color: colors.neutral600 },
     title: { fontSize: 16, fontWeight: "700", color: colors.textPrimary, marginBottom: 6 },

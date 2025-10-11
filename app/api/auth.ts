@@ -124,16 +124,14 @@ export function subscribeToAuth(callback: (user: User | null) => void) {
 export async function updateUserProfileInFirestore(userId: string, updates: Partial<User>): Promise<void> {
     try {
         const userRef = doc(db, "users", userId);
-        
+
         // Check if document exists first
         const docSnap = await getDoc(userRef);
-        
+
         if (!docSnap.exists()) {
-            // Document doesn't exist, create it with merge
-            await setDoc(userRef, updates, { merge: true });
             return;
         }
-        
+
         // Filter out undefined values (to delete fields from Firestore)
         const filteredUpdates: any = {};
         Object.entries(updates).forEach(([key, value]) => {
@@ -144,7 +142,7 @@ export async function updateUserProfileInFirestore(userId: string, updates: Part
                 filteredUpdates[key] = deleteField();
             }
         });
-        
+
         await updateDoc(userRef, filteredUpdates);
     } catch (e) {
         throw mapAuthError(e);

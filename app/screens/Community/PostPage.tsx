@@ -1,19 +1,18 @@
-import React, { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, Text, StyleSheet, View, Image, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { Chip } from "@/app/components/Chip";
+import { StoreState, useStore } from "@/app/store/useStore";
 import { colors } from "@/app/theme/colors";
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useStore, StoreState } from "@/app/store/useStore";
 import type { CommunityPost } from "@/app/types";
 import { generateFoodImage } from "@/app/utils/imageUtils";
-import { Chip } from "@/app/components/Chip";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import CommentSection from "./CommentSection";
 
 export default function PostPage() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
-    const currentUser = useStore((s: StoreState) => s.user);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
 
     const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
@@ -24,13 +23,13 @@ export default function PostPage() {
         "This hearty spicy soup is packed with flavor and spice, perfect for a chilly evening. It's easy to make and can be customized with your favorite vegetables and spices.";
     const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
 
-    // Use default avatar image
-    const authorAvatarUrl = "https://shortifyme.co/815XJ";
-    
-    // Get current user's avatar or use default
-    const currentUserAvatarUrl = currentUser?.avatarUrl || "https://shortifyme.co/815XJ";
-
     const [comment, setComment] = useState("");
+
+    const mockComments = [
+        { id: "c1", name: "Liam Harper", when: "2d", text: "This soup looks amazing! Can't wait to try it." },
+        { id: "c2", name: "Ava Bennett", when: "1d", text: "I made this last night and it was a hit! Thanks for sharing." },
+        { id: "c3", name: "Noah Wilson", when: "5h", text: "What kind of lentils did you use? Red or green?" },
+    ];
 
     return (
         <View style={styles.container}>
@@ -49,7 +48,9 @@ export default function PostPage() {
                 <ScrollView style={styles.sheet} contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.authorRow}>
-                        <Image source={{ uri: authorAvatarUrl }} style={styles.avatar} />
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarTxt}>{author.charAt(0)}</Text>
+                        </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.authorName}>{author}</Text>
                             <Text style={styles.when}>{when}</Text>
@@ -72,7 +73,9 @@ export default function PostPage() {
                 </ScrollView>
 
                 <View style={styles.inputBar}>
-                    <Image source={{ uri: currentUserAvatarUrl }} style={styles.inputAvatar} />
+                    <View style={styles.inputAvatar}>
+                        <Text style={styles.inputAvatarTxt}>Y</Text>
+                    </View>
                     <TextInput
                         style={styles.input}
                         placeholder="Add a comment..."
@@ -119,8 +122,11 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         backgroundColor: colors.neutral200,
+        alignItems: "center",
+        justifyContent: "center",
         marginRight: 12,
     },
+    avatarTxt: { color: colors.neutral800, fontWeight: "700" },
     authorName: { fontSize: 14, fontWeight: "700", color: colors.textPrimary },
     when: { fontSize: 12, color: colors.neutral600 },
     desc: { fontSize: 14, color: colors.textSecondary, marginBottom: 12 },
@@ -155,7 +161,10 @@ const styles = StyleSheet.create({
         height: 28,
         borderRadius: 14,
         backgroundColor: colors.neutral200,
+        alignItems: "center",
+        justifyContent: "center",
     },
+    inputAvatarTxt: { color: colors.neutral800, fontWeight: "700", fontSize: 12 },
     input: {
         flex: 1,
         backgroundColor: colors.neutral50,
