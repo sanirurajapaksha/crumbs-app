@@ -34,3 +34,49 @@ export async function getCommunityPosts(): Promise<CommunityPost[]> {
     }
     return posts;
 }
+
+export async function postComment(postId: string, comment: string, authorName: string, avatarUrl: string) {
+    const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try {
+        const commentRef = doc(db, "postWall", postId, "comments", commentId);
+        await setDoc(
+            commentRef,
+            {
+                id: commentId,
+                text: comment,
+                createdAt: new Date().toISOString(),
+                authorName: authorName,
+                avatarUrl: avatarUrl,
+            },
+            { merge: true }
+        );
+    } catch (error) {
+        console.error("Error posting comment:", error);
+        throw error; // Re-throw to handle in UI
+    }
+}
+
+export async function getAllComments(postId: string) {
+    const comments: { id: string; authorName: string; text: string; createdAt: string; avatarUrl?: string }[] = [];
+    try {
+        const snapshot = await getDocs(collection(db, "postWall", postId, "comments"));
+        snapshot.forEach((doc) => {
+            const commentData = doc.data();
+            const comment = {
+                id: doc.id,
+                authorName: commentData.authorName || commentData.author || "Unknown", // Handle both field names
+                text: commentData.text || "",
+                createdAt: commentData.createdAt || new Date().toISOString(),
+                avatarUrl: commentData.avatarUrl || "",
+            };
+            comments.push(comment);
+        });
+
+        // Sort comments by creation time (newest first)
+        comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+        console.error("Error fetching comments:", error);
+        throw error; // Re-throw to handle in UI
+    }
+    return comments;
+}

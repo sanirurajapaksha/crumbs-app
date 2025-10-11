@@ -1,28 +1,98 @@
-import React, { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, Text, StyleSheet, View, Image, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    StyleSheet,
+    View,
+    Image,
+    TextInput,
+    TouchableOpacity,
+    ScrollView,
+    Keyboard,
+    ActivityIndicator,
+} from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useStore, StoreState } from "@/app/store/useStore";
+import { useStore, StoreState, UtilFunctions, useUtilFunctions } from "@/app/store/useStore";
 import type { CommunityPost } from "@/app/types";
-import { generateFoodImage } from "@/app/utils/imageUtils";
 import { Chip } from "@/app/components/Chip";
 import CommentSection from "./CommentSection";
+import { postComment, getAllComments } from "@/app/api/post-api";
 
 export default function PostPage() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
-    const hero = post?.imageURL || generateFoodImage("Soup", { width: 1200, height: 800 });
+    const hero = post?.imageURL;
     const title = post?.name;
     const author = post?.authorName;
     const avatarURL = post?.authorAvatarUrl;
     const when = timeAgo(post?.createdAt);
     const desc = post?.description;
-    const tags = post?.tags || ["Soup", "Lentils", "Spicy"];
+    const tags = post?.tags || [];
+
+    const setLoading = useUtilFunctions((s: UtilFunctions) => s.setLoading);
+    const loading = useUtilFunctions((s: UtilFunctions) => s.loading);
 
     const [comment, setComment] = useState("");
+    const [comments, setComments] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadComments = async () => {
+            if (post?.id) {
+                setLoading(true);
+                try {
+                    const fetchedComments = await getAllComments(post.id);
+                    console.log("Fetched comments:", fetchedComments);
+                    // Transform the comment data to match CommentSection component expectations
+                    const transformedComments = fetchedComments.map((comment) => ({
+                        id: comment.id,
+                        name: comment.authorName,
+                        text: comment.text,
+                        when: timeAgo(comment.createdAt),
+                        avatarUrl: comment.avatarUrl,
+                    }));
+                    console.log("Transformed comments:", transformedComments);
+                    setComments(transformedComments);
+                } catch (error) {
+                    console.error("Failed to load comments:", error);
+                    setComments([]);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        loadComments();
+    }, [post?.id, setLoading]);
+
+    const handleCommentSubmit = async (id: string, comment: string, avatarURLParam: string) => {
+        if (!comment.trim()) return;
+        setLoading(true);
+        try {
+            await postComment(id, comment, author || "Unknown", avatarURLParam);
+            console.log("Comment posted successfully");
+            setComment("");
+            // Reload comments after posting
+            const updatedComments = await getAllComments(id);
+            console.log("Updated comments after posting:", updatedComments);
+            const transformedComments = updatedComments.map((comment) => ({
+                id: comment.id,
+                name: comment.authorName,
+                text: comment.text,
+                when: timeAgo(comment.createdAt),
+                avatarUrl: comment.avatarUrl,
+            }));
+            setComments(transformedComments);
+        } catch (error) {
+            console.error("Failed to post comment:", error);
+        } finally {
+            setLoading(false);
+            Keyboard.dismiss();
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -57,17 +127,19 @@ export default function PostPage() {
                     </View>
                     <Text style={styles.commentsHeader}>Comments</Text>
                     <View style={styles.commentsContainer}>
-                        {post?.comments?.length === 0 ? (
-                            <Text style={{ textAlign: "center", marginTop: 40, color: colors.neutral600 }}>No Comments yet.</Text>
+                        {comments && comments.length > 0 ? (
+                            comments.map((commentItem: any, index: number) => <CommentSection key={commentItem.id || index} {...commentItem} />)
+                        ) : loading ? (
+                            <ActivityIndicator size="large" style={{ marginTop: 40 }} color={colors.accentAlt} />
                         ) : (
-                            post?.comments?.map((c) => <CommentSection key={c.id} {...c} />)
+                            <Text style={styles.noCommentsText}>No comments yet. Be the first to comment!</Text>
                         )}
                     </View>
                 </ScrollView>
 
                 <View style={styles.inputBar}>
                     <View style={styles.inputAvatar}>
-                        <Text style={styles.inputAvatarTxt}>Y</Text>
+                        <Image source={{ uri: avatarURL }} style={{ width: 24, height: 24, borderRadius: 12 }} />
                     </View>
                     <TextInput
                         style={styles.input}
@@ -77,8 +149,12 @@ export default function PostPage() {
                         onChangeText={setComment}
                         multiline
                     />
-                    <TouchableOpacity style={styles.postBtn} onPress={() => setComment("")}>
-                        <Text style={styles.postBtnTxt}>Post</Text>
+                    <TouchableOpacity
+                        style={styles.postBtn}
+                        onPress={() => handleCommentSubmit(post?.id || "", comment, avatarURL || "")}
+                        disabled={loading || !comment.trim()}
+                    >
+                        <Text style={styles.postBtnTxt}>{loading ? <ActivityIndicator size="small" color={colors.white} /> : "Post"}</Text>
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -130,6 +206,13 @@ const styles = StyleSheet.create({
     desc: { fontSize: 14, color: colors.textSecondary, marginBottom: 12 },
     tagsRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
     commentsHeader: { fontSize: 18, fontWeight: "800", marginVertical: 8, color: colors.textPrimary },
+    noCommentsText: {
+        textAlign: "center",
+        marginTop: 40,
+        color: colors.neutral600,
+        fontSize: 14,
+        fontStyle: "italic",
+    },
     commentAvatar: {
         width: 28,
         height: 28,

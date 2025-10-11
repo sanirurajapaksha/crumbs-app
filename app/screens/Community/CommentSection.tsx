@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Comment } from "@/app/types";
 
@@ -8,7 +8,7 @@ export default function CommentSection(comments: Comment) {
         <View style={styles.wrapper}>
             <View style={styles.row}>
                 <View style={styles.avatar}>
-                    <Text style={styles.avatarTxt}>{comments.name.charAt(0)}</Text>
+                    <Image source={{ uri: comments.avatarUrl }} style={{ width: 32, height: 32, borderRadius: 16 }} />
                 </View>
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>

@@ -6,6 +6,7 @@ export interface Comment {
     name: string;
     when: string;
     text: string;
+    avatarUrl?: string;
 }
 
 export interface User {
