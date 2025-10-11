@@ -14,18 +14,51 @@ const categorizeItems = (items: PantryItem[]) => {
         vegetables: [] as PantryItem[],
         fruits: [] as PantryItem[],
         "dairy & eggs": [] as PantryItem[],
+        "meat & poultry": [] as PantryItem[],
+        seafood: [] as PantryItem[],
+        "grains & cereals": [] as PantryItem[],
+        "legumes & nuts": [] as PantryItem[],
+        "spices & herbs": [] as PantryItem[],
+        "oils & condiments": [] as PantryItem[],
+        beverages: [] as PantryItem[],
+        "baking & desserts": [] as PantryItem[],
+        "frozen foods": [] as PantryItem[],
+        "canned goods": [] as PantryItem[],
         other: [] as PantryItem[],
     };
 
     items.forEach((item) => {
         const category = item.category?.toLowerCase() || "other";
+
+        // Match category to appropriate section
         if (category.includes("vegetable") || category === "vegetables") {
             categories.vegetables.push(item);
         } else if (category.includes("fruit") || category === "fruits") {
             categories.fruits.push(item);
         } else if (category.includes("dairy") || category.includes("egg") || category === "dairy & eggs") {
             categories["dairy & eggs"].push(item);
+        } else if (category.includes("meat") || category.includes("poultry") || category === "meat & poultry") {
+            categories["meat & poultry"].push(item);
+        } else if (category.includes("seafood") || category === "seafood") {
+            categories.seafood.push(item);
+        } else if (category.includes("grain") || category.includes("cereal") || category === "grains & cereals") {
+            categories["grains & cereals"].push(item);
+        } else if (category.includes("legume") || category.includes("nut") || category === "legumes & nuts") {
+            categories["legumes & nuts"].push(item);
+        } else if (category.includes("spice") || category.includes("herb") || category === "spices & herbs") {
+            categories["spices & herbs"].push(item);
+        } else if (category.includes("oil") || category.includes("condiment") || category === "oils & condiments") {
+            categories["oils & condiments"].push(item);
+        } else if (category.includes("beverage") || category === "beverages") {
+            categories.beverages.push(item);
+        } else if (category.includes("baking") || category.includes("dessert") || category === "baking & desserts") {
+            categories["baking & desserts"].push(item);
+        } else if (category.includes("frozen") || category === "frozen foods") {
+            categories["frozen foods"].push(item);
+        } else if (category.includes("canned") || category === "canned goods") {
+            categories["canned goods"].push(item);
         } else {
+            // Only use "other" for truly uncategorizable items
             categories.other.push(item);
         }
     });
@@ -206,7 +239,17 @@ export default function PantryTab() {
                 <CategorySection title="Vegetables" items={categorizedItems.vegetables} onEditItem={handleEditItem} />
                 <CategorySection title="Fruits" items={categorizedItems.fruits} onEditItem={handleEditItem} />
                 <CategorySection title="Dairy & Eggs" items={categorizedItems["dairy & eggs"]} onEditItem={handleEditItem} />
-                {categorizedItems.other.length > 0 && <CategorySection title="Other" items={categorizedItems.other} onEditItem={handleEditItem} />}
+                <CategorySection title="Meat & Poultry" items={categorizedItems["meat & poultry"]} onEditItem={handleEditItem} />
+                <CategorySection title="Seafood" items={categorizedItems.seafood} onEditItem={handleEditItem} />
+                <CategorySection title="Grains & Cereals" items={categorizedItems["grains & cereals"]} onEditItem={handleEditItem} />
+                <CategorySection title="Legumes & Nuts" items={categorizedItems["legumes & nuts"]} onEditItem={handleEditItem} />
+                <CategorySection title="Spices & Herbs" items={categorizedItems["spices & herbs"]} onEditItem={handleEditItem} />
+                <CategorySection title="Oils & Condiments" items={categorizedItems["oils & condiments"]} onEditItem={handleEditItem} />
+                <CategorySection title="Beverages" items={categorizedItems.beverages} onEditItem={handleEditItem} />
+                <CategorySection title="Baking & Desserts" items={categorizedItems["baking & desserts"]} onEditItem={handleEditItem} />
+                <CategorySection title="Frozen Foods" items={categorizedItems["frozen foods"]} onEditItem={handleEditItem} />
+                <CategorySection title="Canned Goods" items={categorizedItems["canned goods"]} onEditItem={handleEditItem} />
+                <CategorySection title="Other" items={categorizedItems.other} onEditItem={handleEditItem} />
 
                 {/* Empty state */}
                 {items.length === 0 && (
