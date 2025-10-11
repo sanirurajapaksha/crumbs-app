@@ -123,15 +123,7 @@ export default function StepDetail() {
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Step Content */}
                 <View style={styles.stepContainer}>
-                    <Text style={styles.stepTitle}>{current.text}</Text>
-                    
-                    {/* Listen Button */}
-                    <TouchableOpacity style={styles.listenButton}>
-                        <MaterialIcons name="volume-up" size={20} color={colors.accent} />
-                        <Text style={styles.listenText}>Listen</Text>
-                    </TouchableOpacity>
-
-                    {/* Step Image */}
+                    {/* Step Image - Now at the top */}
                     <View style={styles.stepImageContainer}>
                         {imageLoading ? (
                             <View style={styles.stepImagePlaceholder}>
@@ -156,13 +148,28 @@ export default function StepDetail() {
                         )}
                     </View>
 
-                    {/* Additional instruction text if needed */}
-                    {current.text.length > 100 && (
-                        <View style={styles.instructionBox}>
-                            <Text style={styles.instructionLabel}>Detailed Instructions:</Text>
-                            <Text style={styles.stepInstruction}>{current.text}</Text>
-                        </View>
-                    )}
+                    {/* Step Title */}
+                    <Text style={styles.stepTitle}>Step {current.stepNumber}</Text>
+                    
+                    {/* Step Description - Short version */}
+                    <Text style={styles.stepDescription}>
+                        {current.text.length > 60 
+                            ? current.text.substring(0, 60) + '...' 
+                            : current.text
+                        }
+                    </Text>
+
+                    {/* Listen Button */}
+                    <TouchableOpacity style={styles.listenButton}>
+                        <MaterialIcons name="volume-up" size={20} color={colors.accent} />
+                        <Text style={styles.listenText}>Listen to Instructions</Text>
+                    </TouchableOpacity>
+
+                    {/* Detailed instruction text */}
+                    <View style={styles.instructionBox}>
+                        <Text style={styles.instructionLabel}>Instructions:</Text>
+                        <Text style={styles.stepInstruction}>{current.text}</Text>
+                    </View>
                 </View>
             </ScrollView>
 
@@ -319,8 +326,17 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: colors.textPrimary,
         textAlign: "center",
-        marginBottom: 20,
+        marginBottom: 12,
         lineHeight: 36,
+    },
+    stepDescription: {
+        fontSize: 16,
+        fontWeight: "400",
+        color: colors.textSecondary,
+        textAlign: "center",
+        marginBottom: 24,
+        lineHeight: 24,
+        fontStyle: "italic",
     },
     listenButton: {
         flexDirection: "row",
@@ -341,13 +357,13 @@ const styles = StyleSheet.create({
     },
     stepImage: {
         width: "100%",
-        height: 240,
+        height: 280,
         borderRadius: 16,
-        marginBottom: 20,
+        marginBottom: 24,
     },
     stepImageContainer: {
         width: "100%",
-        marginBottom: 20,
+        marginBottom: 0,
     },
     stepImagePlaceholder: {
         width: "100%",
