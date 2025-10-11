@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { useLocalSearchParams, Link, router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
 import { colors } from "../../theme/colors";
+import CookingModeModal, { CookingMode } from "../../components/CookingModeModal";
 
 export default function StepsOverview() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const favorites = useStore((s: StoreState) => s.favorites);
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
+    const user = useStore((s: StoreState) => s.user);
+    const [showModeModal, setShowModeModal] = useState(false);
     
     // Check both favorites and myRecipes
     let recipe = favorites.find((r) => r.id === id);
@@ -23,6 +26,23 @@ export default function StepsOverview() {
             </View>
         );
     }
+    
+    const handleStartCooking = () => {
+        setShowModeModal(true);
+    };
+
+    const handleModeSelection = (mode: CookingMode) => {
+        if (recipe.steps && recipe.steps.length > 0) {
+            router.push({
+                pathname: "/screens/Recipe/StepDetail",
+                params: { 
+                    id: recipe.id, 
+                    step: recipe.steps[0].stepNumber,
+                    mode: mode
+                }
+            });
+        }
+    };
     
     return (
         <View style={styles.container}>
@@ -62,18 +82,20 @@ export default function StepsOverview() {
             <View style={styles.buttonContainer}>
                 <TouchableOpacity 
                     style={styles.startButton}
-                    onPress={() => {
-                        if (recipe.steps && recipe.steps.length > 0) {
-                            router.push({
-                                pathname: "/screens/Recipe/StepDetail",
-                                params: { id: recipe.id, step: recipe.steps[0].stepNumber }
-                            });
-                        }
-                    }}
+                    onPress={handleStartCooking}
                 >
                     <Text style={styles.startButtonText}>Start Cooking</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Cooking Mode Selection Modal */}
+            <CookingModeModal
+                visible={showModeModal}
+                onClose={() => setShowModeModal(false)}
+                onSelectMode={handleModeSelection}
+                userName={user?.name}
+                recipeName={recipe.title}
+            />
         </View>
     );
 }

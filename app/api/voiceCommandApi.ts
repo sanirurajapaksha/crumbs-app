@@ -1,18 +1,58 @@
 import { Audio } from 'expo-av';
+import { checkForWakeWordInTranscript, extractCommandFromTranscript } from './wakeWordDetection';
 
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
+// Global recording instance to prevent multiple recordings
+let globalRecording: Audio.Recording | null = null;
+let isRecording = false; // Lock to prevent concurrent recordings
+
 export interface VoiceCommandResult {
     command: 'next' | 'previous' | 'repeat' | 'unknown';
     transcript: string;
+    hasWakeWord?: boolean;
+}
+
+/**
+ * Cleanup any existing recording
+ */
+async function cleanupGlobalRecording(): Promise<void> {
+    if (globalRecording) {
+        try {
+            const status = await globalRecording.getStatusAsync();
+            if (status.isDoneRecording === false) {
+                await globalRecording.stopAndUnloadAsync();
+            }
+            globalRecording = null;
+            isRecording = false;
+            console.log('🧹 Cleaned up previous recording');
+        } catch (e: any) {
+            console.log('⚠️ Cleanup warning:', e?.message || 'unknown');
+            globalRecording = null;
+            isRecording = false;
+        }
+    }
 }
 
 /**
  * Records audio from the microphone and transcribes it using Groq Whisper API
  */
 export async function recordAndTranscribeVoiceCommand(): Promise<VoiceCommandResult> {
-    let recording: Audio.Recording | null = null;
+    // Check if already recording
+    if (isRecording) {
+        console.log('⚠️ Recording already in progress, ignoring request');
+        throw new Error('Recording already in progress');
+    }
+
+    // Set lock
+    isRecording = true;
+
+    // Clean up any existing recording first
+    await cleanupGlobalRecording();
+    
+    // Set lock again after cleanup
+    isRecording = true;
 
     try {
         console.log('🎤 Requesting microphone permissions...');
@@ -23,17 +63,20 @@ export async function recordAndTranscribeVoiceCommand(): Promise<VoiceCommandRes
             throw new Error('Microphone permission not granted');
         }
 
-        // Configure audio mode
+        // Configure audio mode - IMPORTANT: must be before creating recording
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: true,
             playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
         });
 
-        console.log('🎤 Starting recording...');
+        console.log('🎤 Creating new recording...');
         
-        // Create and start recording
-        recording = new Audio.Recording();
-        await recording.prepareToRecordAsync({
+        // Create recording using global instance
+        globalRecording = new Audio.Recording();
+        await globalRecording.prepareToRecordAsync({
             android: {
                 extension: '.m4a',
                 outputFormat: Audio.AndroidOutputFormat.MPEG_4,
@@ -59,15 +102,16 @@ export async function recordAndTranscribeVoiceCommand(): Promise<VoiceCommandRes
             },
         });
 
-        await recording.startAsync();
+        console.log('🎤 Starting recording...');
+        await globalRecording.startAsync();
 
         // Record for 3 seconds
         await new Promise(resolve => setTimeout(resolve, 3000));
 
         console.log('🎤 Stopping recording...');
-        await recording.stopAndUnloadAsync();
+        await globalRecording.stopAndUnloadAsync();
         
-        const uri = recording.getURI();
+        const uri = globalRecording.getURI();
         if (!uri) {
             throw new Error('Failed to get recording URI');
         }
@@ -82,24 +126,22 @@ export async function recordAndTranscribeVoiceCommand(): Promise<VoiceCommandRes
         const command = parseVoiceCommand(transcript);
         console.log('✅ Command:', command);
 
+        // Cleanup and release lock
+        globalRecording = null;
+        isRecording = false;
+
         return { command, transcript };
 
     } catch (error) {
         console.error('❌ Voice recording error:', error);
+        
+        // Cleanup on error and release lock
+        await cleanupGlobalRecording();
+        
         throw error;
     } finally {
-        // Cleanup - only if recording exists and is still loaded
-        if (recording) {
-            try {
-                const status = await recording.getStatusAsync();
-                if (status.canRecord || status.isRecording) {
-                    await recording.stopAndUnloadAsync();
-                }
-            } catch (e) {
-                // Already unloaded, ignore
-                console.log('Recording already cleaned up');
-            }
-        }
+        // Always release lock
+        isRecording = false;
     }
 }
 
@@ -180,3 +222,150 @@ function parseVoiceCommand(transcript: string): 'next' | 'previous' | 'repeat' |
 
     return 'unknown';
 }
+
+/**
+ * Records audio with wake word detection, then transcribes with Groq
+ * This is more cost-effective as it only calls the API when wake word is detected
+ */
+export async function recordWithWakeWordAndTranscribe(
+    recordingDuration: number = 5000,
+    onProgress?: (secondsRemaining: number) => void
+): Promise<VoiceCommandResult> {
+    // Check if already recording
+    if (isRecording) {
+        console.log('⚠️ Recording already in progress, ignoring request');
+        throw new Error('Recording already in progress');
+    }
+
+    // Set lock
+    isRecording = true;
+
+    // Clean up any existing recording first
+    await cleanupGlobalRecording();
+    
+    // Set lock again after cleanup
+    isRecording = true;
+
+    try {
+        console.log('🎤 Requesting microphone permissions...');
+        
+        // Request permissions
+        const permission = await Audio.requestPermissionsAsync();
+        if (!permission.granted) {
+            throw new Error('Microphone permission is required');
+        }
+
+        // Set audio mode - IMPORTANT: must be set before creating recording
+        await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+        });
+
+        console.log('🎤 Creating new recording...');
+        
+        // Create recording with high quality settings
+        const recordingOptions = {
+            android: {
+                extension: '.m4a',
+                outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+                audioEncoder: Audio.AndroidAudioEncoder.AAC,
+                sampleRate: 16000,
+                numberOfChannels: 1,
+                bitRate: 128000,
+            },
+            ios: {
+                extension: '.m4a',
+                outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+                audioQuality: Audio.IOSAudioQuality.HIGH,
+                sampleRate: 16000,
+                numberOfChannels: 1,
+                bitRate: 128000,
+            },
+            web: {
+                mimeType: 'audio/webm',
+                bitsPerSecond: 128000,
+            },
+        };
+
+        const { recording: rec } = await Audio.Recording.createAsync(recordingOptions);
+        globalRecording = rec;
+
+        console.log('🎤 Starting recording...');
+        await globalRecording.startAsync();
+
+        // Progress updates
+        const startTime = Date.now();
+        const progressInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.ceil((recordingDuration - elapsed) / 1000);
+            if (onProgress && remaining > 0) {
+                onProgress(remaining);
+            }
+        }, 1000);
+
+        // Record for specified duration
+        await new Promise(resolve => setTimeout(resolve, recordingDuration));
+
+        // Stop recording
+        clearInterval(progressInterval);
+        console.log('🎤 Stopping recording...');
+        await globalRecording.stopAndUnloadAsync();
+        
+        const uri = globalRecording.getURI();
+        if (!uri) {
+            throw new Error('Failed to get recording URI');
+        }
+
+        console.log('🎤 Recording saved:', uri);
+
+        // Transcribe using Groq Whisper
+        const transcript = await transcribeAudioWithGroq(uri);
+        console.log('📝 Full transcript:', transcript);
+
+        // Check for wake word
+        const hasWakeWord = await checkForWakeWordInTranscript(transcript);
+        
+        if (!hasWakeWord) {
+            console.log('⚠️ No wake word detected. Ignoring command.');
+            
+            // Cleanup and release lock
+            globalRecording = null;
+            isRecording = false;
+            
+            return { 
+                command: 'unknown', 
+                transcript,
+                hasWakeWord: false
+            };
+        }
+
+        // Extract command after wake word
+        const commandText = extractCommandFromTranscript(transcript);
+        console.log('📝 Command text:', commandText);
+
+        // Parse command
+        const command = parseVoiceCommand(commandText);
+        console.log('✅ Command:', command);
+
+        // Cleanup and release lock
+        globalRecording = null;
+        isRecording = false;
+
+        return { command, transcript, hasWakeWord: true };
+
+    } catch (error) {
+        console.error('❌ Voice recording error:', error);
+        
+        // Cleanup on error and release lock
+        await cleanupGlobalRecording();
+        
+        throw error;
+    } finally {
+        // Always release lock
+        isRecording = false;
+    }
+}
+

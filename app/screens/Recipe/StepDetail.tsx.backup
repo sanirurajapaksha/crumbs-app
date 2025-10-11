@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
@@ -22,6 +22,7 @@ export default function StepDetail() {
     
     const [showProgress, setShowProgress] = useState(false);
     const [stepImageUrl, setStepImageUrl] = useState<string | null>(null);
+    const [imageLoading, setImageLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [recognizedText, setRecognizedText] = useState('');
@@ -53,41 +54,50 @@ export default function StepDetail() {
         const generateStepImage = async () => {
             if (current.image) {
                 setStepImageUrl(current.image);
+                setImageLoading(false);
                 return;
             }
 
             try {
-                // Simplify the prompt for faster generation
+                setImageLoading(true);
+                
+                const stepText = current.text.toLowerCase();
+                const stepWords = stepText.split(' ');
+                
+                const cookingActions = ['chop', 'slice', 'dice', 'mince', 'mix', 'stir', 'whisk', 'beat', 
+                                       'fold', 'knead', 'roll', 'cut', 'peel', 'grate', 'blend', 'pour',
+                                       'heat', 'boil', 'simmer', 'fry', 'sauté', 'bake', 'roast', 'grill',
+                                       'season', 'marinate', 'coat', 'garnish', 'serve', 'arrange'];
+                
+                const action = stepWords.find(word => cookingActions.includes(word)) || 'cooking';
+                const ingredientIndex = stepWords.findIndex(word => cookingActions.includes(word)) + 1;
+                const ingredient = stepWords[ingredientIndex] || '';
+                
+                const recipeName = recipe.title.split(' ')[0];
                 const stepNumber = current.stepNumber;
-                const seed = stepNumber * 1000 + recipe.title.length;
                 
-                // Use a simpler, more reliable prompt
-                const simplePrompt = encodeURIComponent(
-                    `${recipe.title} cooking step ${stepNumber}, professional food photography`
+                const pollinationsPrompt = encodeURIComponent(
+                    `${action} ${ingredient} for ${recipe.title}, step ${stepNumber}, professional food photography, close-up cooking action`
                 );
-                
-                const pollinationsUrl = `https://image.pollinations.ai/prompt/${simplePrompt}?width=800&height=600&nologo=true&seed=${seed}&enhance=true`;
+                const seed = stepNumber * 1000 + recipe.title.length;
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${pollinationsPrompt}?width=800&height=600&nologo=true&seed=${seed}`;
                 
                 setStepImageUrl(pollinationsUrl);
-                
+                setImageLoading(false);
             } catch (error) {
                 console.error('Error generating step image:', error);
+                setImageLoading(false);
             }
         };
 
         generateStepImage();
     }, [step, current.text, current.stepNumber, recipe.title]);
     
-    // Initialize hands-free mode on first step only
+    // Initialize hands-free mode on first step
     useEffect(() => {
-        if (cookingMode === 'interactive' && current.stepNumber === 1 && isFirstStepRef.current) {
+        if (cookingMode === 'interactive' && isFirstStepRef.current) {
             isFirstStepRef.current = false;
             initializeHandsFreeCooking();
-        }
-
-        // If interactive mode but not first step, request permissions immediately
-        if (cookingMode === 'interactive' && current.stepNumber !== 1 && !micPermissionGranted) {
-            requestMicPermission();
         }
 
         // Cleanup on unmount
@@ -99,28 +109,12 @@ export default function StepDetail() {
         };
     }, []);
 
-    // Auto-speak when step changes in interactive mode (skip first step as it's handled above)
+    // Auto-speak when step changes in interactive mode
     useEffect(() => {
-        if (cookingMode === 'interactive' && current.stepNumber !== 1 && micPermissionGranted) {
+        if (cookingMode === 'interactive' && !isFirstStepRef.current && micPermissionGranted) {
             speakCurrentStep();
         }
-    }, [step, micPermissionGranted]);
-
-    const requestMicPermission = async () => {
-        try {
-            const { Audio } = await import('expo-av');
-            const { granted } = await Audio.requestPermissionsAsync();
-            
-            if (granted) {
-                setMicPermissionGranted(true);
-            } else {
-                setMicPermissionDenied(true);
-            }
-        } catch (error) {
-            console.error('Error requesting mic permission:', error);
-            setMicPermissionDenied(true);
-        }
-    };
+    }, [step]);
 
     const initializeHandsFreeCooking = async () => {
         try {
@@ -280,77 +274,93 @@ export default function StepDetail() {
 
     return (
         <View style={styles.container}>
-            {/* Compact Header */}
-            <View style={styles.compactHeader}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{idx + 1}/{recipe.steps.length}</Text>
+            {/* Mode Indicator */}
+            <View style={styles.modeIndicator}>
+                <MaterialIcons 
+                    name={cookingMode === 'interactive' ? 'mic' : 'touch-app'} 
+                    size={16} 
+                    color={colors.accent} 
+                />
+                <Text style={styles.modeText}>
+                    {cookingMode === 'interactive' ? '🎙️ Hands-Free Mode' : '👆 Manual Mode'}
+                </Text>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
                 </View>
-                <TouchableOpacity onPress={() => setShowProgress(!showProgress)} style={styles.menuButton}>
-                    <MaterialIcons name="more-vert" size={22} color={colors.textPrimary} />
+                <Text style={styles.progressText}>Step {idx + 1} of {recipe.steps.length}</Text>
+                <TouchableOpacity onPress={() => setShowProgress(!showProgress)}>
+                    <MaterialIcons name="list" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={styles.content}>
                 {/* Step Content */}
                 <View style={styles.stepContainer}>
                     {/* Step Image */}
                     <View style={styles.stepImageContainer}>
-                        {stepImageUrl ? (
+                        {imageLoading ? (
+                            <View style={styles.stepImagePlaceholder}>
+                                <ActivityIndicator size="large" color={colors.accent} />
+                                <Text style={styles.loadingImageText}>Loading image...</Text>
+                            </View>
+                        ) : stepImageUrl ? (
                             <Image 
                                 source={{ uri: stepImageUrl }} 
                                 style={styles.stepImage}
                                 resizeMode="cover"
-                                onError={(error) => {
-                                    console.log('Image load error:', error.nativeEvent.error);
-                                    // Fallback to a simpler Unsplash URL
-                                    setStepImageUrl('https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop');
+                                onError={() => {
+                                    setStepImageUrl('https://source.unsplash.com/800x600/?cooking,food');
                                 }}
                             />
                         ) : (
                             <View style={styles.stepImagePlaceholder}>
-                                <MaterialIcons name="image" size={48} color="#ccc" />
+                                <MaterialIcons name="image" size={64} color="#ccc" />
+                                <Text style={styles.noImageText}>No image available</Text>
                             </View>
                         )}
                     </View>
 
-                    {/* Step Number Badge */}
-                    <View style={styles.stepBadge}>
-                        <Text style={styles.stepBadgeText}>Step {current.stepNumber}</Text>
-                    </View>
+                    {/* Step Title */}
+                    <Text style={styles.stepTitle}>Step {current.stepNumber}</Text>
                     
-                    {/* Instruction text */}
-                    <Text style={styles.stepInstruction}>{current.text}</Text>
+                    {/* Detailed instruction text */}
+                    <View style={styles.instructionBox}>
+                        <Text style={styles.instructionLabel}>Instructions:</Text>
+                        <Text style={styles.stepInstruction}>{current.text}</Text>
+                    </View>
 
                     {/* Interactive Mode Status */}
                     {cookingMode === 'interactive' && (
                         <View style={styles.interactiveStatus}>
                             {micPermissionDenied ? (
                                 <View style={styles.permissionDenied}>
-                                    <MaterialIcons name="mic-off" size={20} color="#E74C3C" />
+                                    <MaterialIcons name="mic-off" size={24} color="#E74C3C" />
                                     <Text style={styles.permissionDeniedText}>
-                                        Microphone access denied
+                                        Microphone permission denied. Please enable it in settings.
                                     </Text>
                                 </View>
                             ) : (
                                 <>
                                     {isSpeaking && (
-                                        <View style={styles.statusIndicator}>
-                                            <View style={styles.statusIconContainer}>
-                                                <MaterialIcons name="volume-up" size={18} color={colors.accent} />
-                                            </View>
-                                            <Text style={styles.statusText}>Reading...</Text>
+                                        <View style={styles.speakingIndicator}>
+                                            <MaterialIcons name="volume-up" size={24} color={colors.accent} />
+                                            <Text style={styles.speakingText}>Reading instructions...</Text>
                                         </View>
                                     )}
                                     
                                     {isListening && !isSpeaking && (
-                                        <View style={styles.statusIndicator}>
-                                            <View style={[styles.statusIconContainer, styles.pulseAnimation]}>
-                                                <MaterialIcons name="mic" size={18} color={colors.accent} />
+                                        <View style={styles.listeningIndicator}>
+                                            <View style={styles.pulseCircle}>
+                                                <MaterialIcons name="mic" size={32} color={colors.accent} />
                                             </View>
-                                            <Text style={styles.statusText}>Listening</Text>
+                                            <Text style={styles.listeningText}>{recognizedText}</Text>
+                                            <Text style={styles.listeningSubtext}>
+                                                Say "Next", "Previous", or "Repeat"
+                                            </Text>
                                         </View>
                                     )}
                                 </>
@@ -494,63 +504,59 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#FFF5F0",
     },
-    compactHeader: {
+    modeIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
+        justifyContent: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: '#FFE5DC',
+        gap: 6,
+    },
+    modeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: colors.accent,
+    },
+    progressContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 12,
-        backgroundColor: "#FFF5F0",
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    headerLeft: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
         gap: 12,
     },
     progressBar: {
         flex: 1,
-        height: 4,
-        backgroundColor: "#E8E8E8",
-        borderRadius: 2,
+        height: 6,
+        backgroundColor: "#E0E0E0",
+        borderRadius: 3,
         overflow: "hidden",
     },
     progressFill: {
         height: "100%",
         backgroundColor: colors.accent,
-        borderRadius: 2,
+        borderRadius: 3,
     },
     progressText: {
         fontSize: 13,
-        fontWeight: "700",
-        color: colors.textPrimary,
-        minWidth: 40,
-    },
-    menuButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#F8F8F8',
-        justifyContent: 'center',
-        alignItems: 'center',
+        fontWeight: "600",
+        color: colors.textMuted,
     },
     content: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
+        paddingHorizontal: 16,
         paddingBottom: 100,
     },
     stepContainer: {
-        gap: 16,
+        marginTop: 8,
     },
     stepImageContainer: {
         width: "100%",
-        height: 220,
-        borderRadius: 16,
+        height: 240,
+        borderRadius: 20,
         overflow: "hidden",
-        backgroundColor: "#F5F5F5",
+        marginBottom: 20,
+        backgroundColor: "#F0F0F0",
     },
     stepImage: {
         width: "100%",
@@ -563,66 +569,97 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#F5F5F5",
     },
-    stepBadge: {
-        backgroundColor: colors.accent,
-        alignSelf: 'flex-start',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+    loadingImageText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.textMuted,
     },
-    stepBadgeText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#fff',
+    noImageText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: "#ccc",
+    },
+    stepTitle: {
+        fontSize: 28,
+        fontWeight: "800",
+        color: colors.textPrimary,
+        marginBottom: 16,
+    },
+    instructionBox: {
+        backgroundColor: "#fff",
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    instructionLabel: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.accent,
+        marginBottom: 8,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
     },
     stepInstruction: {
-        fontSize: 17,
+        fontSize: 16,
         lineHeight: 26,
         color: colors.textPrimary,
-        fontWeight: '500',
     },
     interactiveStatus: {
-        marginTop: 4,
+        marginTop: 16,
     },
     permissionDenied: {
-        backgroundColor: '#FFF0F0',
-        padding: 12,
-        borderRadius: 10,
+        backgroundColor: '#FEE',
+        padding: 16,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 12,
     },
     permissionDeniedText: {
         flex: 1,
-        fontSize: 13,
+        fontSize: 14,
         color: '#E74C3C',
         fontWeight: '600',
     },
-    statusIndicator: {
+    speakingIndicator: {
+        backgroundColor: '#FFF5E6',
+        padding: 16,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8F8F8',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
-        gap: 8,
+        gap: 12,
     },
-    statusIconContainer: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: '#FFF',
-        justifyContent: 'center',
+    speakingText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.accent,
+    },
+    listeningIndicator: {
+        backgroundColor: '#F0F8FF',
+        padding: 24,
+        borderRadius: 16,
         alignItems: 'center',
     },
-    pulseAnimation: {
-        backgroundColor: '#FFE5DC',
+    pulseCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.accent,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
     },
-    statusText: {
-        fontSize: 14,
+    listeningText: {
+        fontSize: 16,
         fontWeight: '600',
         color: colors.textPrimary,
+        marginBottom: 8,
+        textAlign: 'center',
     },
     listeningSubtext: {
         fontSize: 13,

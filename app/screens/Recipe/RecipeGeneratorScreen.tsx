@@ -2,7 +2,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
     Dimensions,
     Image,
@@ -13,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import RecipeGenerationLoader from "../../components/RecipeGenerationLoader";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
@@ -286,20 +286,16 @@ export default function RecipeGeneratorScreen() {
             {/* Generate Button - Fixed at bottom */}
             <View style={styles.generateButtonContainer}>
                 <TouchableOpacity
-                    style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
+                    style={styles.generateButton}
                     onPress={handleGenerateRecipe}
                     disabled={isGenerating}
                 >
-                    {isGenerating ? (
-                        <>
-                            <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.generateButtonText}>Generating Recipe...</Text>
-                        </>
-                    ) : (
-                        <Text style={styles.generateButtonText}>Generate Recipe</Text>
-                    )}
+                    <Text style={styles.generateButtonText}>Generate Recipe</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Loading Modal */}
+            <RecipeGenerationLoader visible={isGenerating} />
         </View>
     );
 }
@@ -619,9 +615,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.35,
         shadowRadius: 12,
         elevation: 6,
-    },
-    generateButtonDisabled: {
-        opacity: 0.6,
     },
     generateButtonText: {
         fontSize: 17,
