@@ -5,6 +5,7 @@ import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { imagePostAPI } from "../api/imagePostAPI";
 
 const { width } = Dimensions.get("window");
 const CARD_SIZE = (width - 48) / 2; // 2 columns with padding
@@ -58,16 +59,17 @@ export default function Profile() {
             return;
         }
 
-        const result = await ImagePicker.launchCameraAsync({
+        await ImagePicker.launchCameraAsync({
             mediaTypes: "images" as any,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
+        }).then(async (res) => {
+            if (!res.canceled && res.assets[0]) {
+                const avatarUrl = await imagePostAPI(res.assets[0].uri);
+                await updateUserProfile({ avatarUrl: avatarUrl.data.url });
+            }
         });
-
-        if (!result.canceled && result.assets[0]) {
-            await updateUserProfile({ avatarUrl: result.assets[0].uri });
-        }
     };
 
     const pickImageFromGallery = async () => {
@@ -78,16 +80,17 @@ export default function Profile() {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
+        await ImagePicker.launchImageLibraryAsync({
             mediaTypes: "images" as any,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
+        }).then(async (res) => {
+            if (!res.canceled && res.assets[0]) {
+                const avatarUrl = await imagePostAPI(res.assets[0].uri);
+                await updateUserProfile({ avatarUrl: avatarUrl.data.url });
+            }
         });
-
-        if (!result.canceled && result.assets[0]) {
-            await updateUserProfile({ avatarUrl: result.assets[0].uri });
-        }
     };
 
     const deleteProfilePicture = () => {
@@ -114,6 +117,7 @@ export default function Profile() {
 
     // Generate unique avatar URL based on user ID if no custom avatar
     const getAvatarUrl = () => {
+        console.log("User data:", user);
         if (user?.avatarUrl) {
             return user.avatarUrl;
         }

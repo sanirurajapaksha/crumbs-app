@@ -160,9 +160,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         if (unsubscribeAuth) return; // idempotent
         unsubscribeAuth = subscribeToAuth((u) => {
             if (u) {
-                // Preserve local user data (like avatarUrl) when Firebase auth updates
                 const currentUser = get().user;
-                const mergedUser = currentUser ? { ...u, avatarUrl: currentUser.avatarUrl, bio: currentUser.bio } : u;
+                const mergedUser = currentUser ? { ...u, avatarUrl: u.avatarUrl, bio: u.bio } : u;
                 set({ user: mergedUser });
             } else set({ user: null });
         });
