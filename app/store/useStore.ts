@@ -1,5 +1,3 @@
-import { create, StateCreator } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
 import {
@@ -12,6 +10,9 @@ import {
 } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { router } from "expo-router";
+import { create, StateCreator } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+
 
 export interface StoreState {
     user: User | null;
@@ -34,6 +35,7 @@ export interface StoreState {
     resetPassword?: (email: string) => Promise<void>;
     startAuthListener: () => void;
     addPantryItem: (item: PantryItem) => void;
+    addBatchPantryItems: (items: PantryItem[]) => void;
     updatePantryItem: (id: string, patch: Partial<PantryItem>) => void;
     removePantryItem: (id: string) => void;
     clearPantry: () => void;
@@ -128,6 +130,7 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         });
     },
     addPantryItem: (item: PantryItem) => set({ pantryItems: [...get().pantryItems, item] }),
+    addBatchPantryItems: (items: PantryItem[]) => set({ pantryItems: [...get().pantryItems, ...items] }),
     updatePantryItem: (id: string, patch: Partial<PantryItem>) =>
         set({ pantryItems: get().pantryItems.map((p: PantryItem) => (p.id === id ? { ...p, ...patch } : p)) }),
     removePantryItem: (id: string) => set({ pantryItems: get().pantryItems.filter((p: PantryItem) => p.id !== id) }),

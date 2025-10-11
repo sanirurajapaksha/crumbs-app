@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { categorizeIngredient } from '../api/groqApi';
 import { colors } from '../theme/colors';
 
 interface IngredientData {
@@ -23,9 +24,16 @@ const categories = [
     'vegetables',
     'fruits', 
     'dairy & eggs',
-    'grains',
-    'proteins',
-    'spices & seasonings',
+    'meat & poultry',
+    'seafood',
+    'grains & cereals',
+    'legumes & nuts',
+    'spices & herbs',
+    'oils & condiments',
+    'beverages',
+    'baking & desserts',
+    'frozen foods',
+    'canned goods',
     'other'
 ];
 
@@ -40,6 +48,7 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
     const [quantity, setQuantity] = useState('');
     const [category, setCategory] = useState('other');
     const [expiryDate, setExpiryDate] = useState('');
+    const [isRecategorizing, setIsRecategorizing] = useState(false);
 
     useEffect(() => {
         if (ingredient) {
@@ -115,6 +124,33 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
         );
     };
 
+    const handleRecategorize = async () => {
+        if (!name.trim()) {
+            Alert.alert('Name Required', 'Please enter an ingredient name first.');
+            return;
+        }
+
+        setIsRecategorizing(true);
+        try {
+            const newCategory = await categorizeIngredient(name.trim());
+            setCategory(newCategory);
+            Alert.alert(
+                'Category Updated', 
+                `AI has categorized "${name.trim()}" as "${newCategory}".`,
+                [{ text: 'OK' }]
+            );
+        } catch (error) {
+            console.error('Error recategorizing ingredient:', error);
+            Alert.alert(
+                'Error', 
+                'Failed to categorize ingredient. Please try again or select manually.',
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setIsRecategorizing(false);
+        }
+    };
+
     if (!ingredient) return null;
 
     return (
@@ -162,7 +198,23 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
 
                         {/* Category Field */}
                         <View style={styles.fieldContainer}>
-                            <Text style={styles.fieldLabel}>Category</Text>
+                            <View style={styles.categoryHeader}>
+                                <Text style={styles.fieldLabel}>Category</Text>
+                                <TouchableOpacity 
+                                    style={[styles.aiButton, isRecategorizing && styles.aiButtonDisabled]}
+                                    onPress={handleRecategorize}
+                                    disabled={isRecategorizing}
+                                >
+                                    {isRecategorizing ? (
+                                        <ActivityIndicator size="small" color={colors.white} />
+                                    ) : (
+                                        <Ionicons name="sparkles" size={14} color={colors.white} />
+                                    )}
+                                    <Text style={styles.aiButtonText}>
+                                        {isRecategorizing ? 'AI...' : 'AI'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                             <View style={styles.categoryContainer}>
                                 {categories.map((cat) => (
                                     <TouchableOpacity
@@ -172,6 +224,7 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
                                             category === cat && styles.categoryChipSelected
                                         ]}
                                         onPress={() => setCategory(cat)}
+                                        disabled={isRecategorizing}
                                     >
                                         <Text
                                             style={[
@@ -300,6 +353,29 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.textMuted,
         marginTop: 4,
+    },
+    categoryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    aiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.accent,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    aiButtonDisabled: {
+        backgroundColor: colors.textMuted,
+    },
+    aiButtonText: {
+        fontSize: 12,
+        color: colors.white,
+        fontWeight: '500',
     },
     categoryContainer: {
         flexDirection: 'row',

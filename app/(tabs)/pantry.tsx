@@ -184,14 +184,21 @@ export default function PantryTab() {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Pantry</Text>
-                <Link href={"/screens/Pantry/PantryInput" as any} asChild>
-                    <TouchableOpacity style={styles.addButton}>
-                        <Text style={styles.addButtonText}>Add Item</Text>
-                        <View style={styles.addIcon}>
-                            <Text style={styles.addIconText}>+</Text>
-                        </View>
-                    </TouchableOpacity>
-                </Link>
+                <View style={styles.headerButtons}>
+                    <Link href={"/screens/Pantry/CameraScreen" as any} asChild>
+                        <TouchableOpacity style={styles.cameraButton}>
+                            <MaterialIcons name="camera-alt" size={20} color={colors.white} />
+                        </TouchableOpacity>
+                    </Link>
+                    <Link href={"/screens/Pantry/PantryInput" as any} asChild>
+                        <TouchableOpacity style={styles.addButton}>
+                            <Text style={styles.addButtonText}>Add Item</Text>
+                            <View style={styles.addIcon}>
+                                <Text style={styles.addIconText}>+</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </Link>
+                </View>
             </View>
 
             {/* Content */}
@@ -251,6 +258,19 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
+    },
+    headerButtons: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    cameraButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.accent,
+        justifyContent: "center",
+        alignItems: "center",
     },
     addButtonText: {
         fontSize: 14,
