@@ -17,6 +17,10 @@ export interface User {
     bio?: string;
     joinYear?: string;
     avatarUrl?: string;
+    communityPosts?: CommunityPost[];
+    likedPosts?: string[]; // Array of CommunityPost IDs
+    pantryItems?: PantryItem[];
+    favoriteRecipes?: string[]; // Array of Recipe IDs
 }
 export interface PantryItem {
     id: string;
@@ -55,7 +59,8 @@ export interface CommunityPost {
     id: string;
     authorId: string;
     imageURL?: string;
-    text: string;
+    name: string;
+    description: string;
     tags?: string[];
     createdAt?: string;
     likeCount?: number;

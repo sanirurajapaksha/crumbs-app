@@ -7,13 +7,14 @@ import {
     subscribeToAuth,
     deleteAccount as fbDeleteAccount,
     sendPasswordReset,
+    updateUserProfileInFirestore,
 } from "../api/auth";
 import { generateRecipeFromPantry, getCommunityPosts, postCommunityPost } from "../api/mockApi";
 import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
+import { postCommunityPost, getCommunityPosts } from "../api/post-api";
 
 export interface StoreState {
     user: User | null;
@@ -47,7 +48,7 @@ export interface StoreState {
     likePost: (post: CommunityPost) => void;
     unlikePost: (id: string) => void;
     loadPosts: () => Promise<void>;
-    postCommunity: (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => Promise<CommunityPost>;
+    postCommunity: (uid: string, post: CommunityPost) => void;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     generateRecipeWithAI: (pantry: PantryItem[], options?: {
         categoryId?: string[];
@@ -56,6 +57,7 @@ export interface StoreState {
         cookingTimeMax?: number;
     }) => Promise<Recipe>;
     setHasOnboarded: () => void;
+    updateUserProfile: (updates: Partial<User>) => Promise<void>;
     // notification actions
     markNotificationAsRead: (id: string) => void;
     markAllNotificationsAsRead: () => void;
@@ -63,7 +65,23 @@ export interface StoreState {
     addNotification: (notification: Notification) => void;
 }
 
+export interface UtilFunctions {
+    loading: boolean;
+    error: string | null;
+    clearError: () => void;
+    setError: (msg: string) => void;
+    setLoading: (isLoading: boolean) => void;
+}
+
 let unsubscribeAuth: (() => void) | null = null;
+
+export const useUtilFunctions = create<UtilFunctions>()((set) => ({
+    loading: false,
+    error: null,
+    clearError: () => set({ error: null }),
+    setError: (msg: string) => set({ error: msg }),
+    setLoading: (isLoading: boolean) => set({ loading: isLoading }),
+}));
 
 const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () => StoreState) => ({
     user: null,
@@ -81,7 +99,10 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         set({ authLoading: true });
         try {
             const u = await loginWithEmail({ email, password });
-            set({ user: u });
+            // Preserve existing avatarUrl if present (from persisted store)
+            const currentUser = get().user;
+            const mergedUser = currentUser?.avatarUrl ? { ...u, avatarUrl: currentUser.avatarUrl } : u;
+            set({ user: mergedUser });
             if (u) router.replace("/(tabs)");
             return u;
         } finally {
@@ -98,6 +119,9 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         } finally {
             set({ authLoading: false });
         }
+    },
+    resetPassword: async (email: string) => {
+        await sendPasswordReset(email);
     },
     signOut: async () => {
         set({ authLoading: true });
@@ -132,8 +156,12 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     startAuthListener: () => {
         if (unsubscribeAuth) return; // idempotent
         unsubscribeAuth = subscribeToAuth((u) => {
-            if (u) set({ user: u });
-            else set({ user: null });
+            if (u) {
+                // Preserve local user data (like avatarUrl) when Firebase auth updates
+                const currentUser = get().user;
+                const mergedUser = currentUser ? { ...u, avatarUrl: currentUser.avatarUrl, bio: currentUser.bio } : u;
+                set({ user: mergedUser });
+            } else set({ user: null });
         });
     },
     addPantryItem: (item: PantryItem) => set({ pantryItems: [...get().pantryItems, item] }),
@@ -161,8 +189,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         const posts = await getCommunityPosts();
         set({ communityPosts: posts });
     },
-    postCommunity: async (p: Omit<CommunityPost, "id" | "createdAt" | "likeCount">) => {
-        const saved = await postCommunityPost(p);
+    postCommunity: async (uid: string, post: CommunityPost) => {
+        const saved = await postCommunityPost(uid, post);
         set({ communityPosts: [saved, ...get().communityPosts] });
         return saved;
     },
@@ -202,6 +230,30 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     },
     addNotification: (notification: Notification) => {
         set({ notifications: [notification, ...get().notifications] });
+    },
+    updateUserProfile: async (updates: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            // Handle undefined values (field deletion) by removing them from the merged object
+            const updatedUser = { ...currentUser };
+            Object.entries(updates).forEach(([key, value]) => {
+                if (value === undefined) {
+                    delete (updatedUser as any)[key];
+                } else {
+                    (updatedUser as any)[key] = value;
+                }
+            });
+
+            // Update local state immediately for instant UI feedback
+            set({ user: updatedUser });
+
+            // Persist to Firestore in the background
+            try {
+                await updateUserProfileInFirestore(currentUser.id, updates);
+            } catch (error) {
+                console.error("Failed to update user profile in Firestore:", error);
+            }
+        }
     },
 });
 

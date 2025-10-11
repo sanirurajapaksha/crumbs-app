@@ -62,6 +62,14 @@ export default function HomeScreen() {
     const user = useStore((s: StoreState) => s.user);
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
+    // Get time-based greeting
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    };
+
     const handleRecipePress = (recipe: Recipe) => {
         setSelectedRecipe(recipe);
         // Navigate to recipe detail
@@ -83,7 +91,7 @@ export default function HomeScreen() {
 
                 {/* Greeting */}
                 <View style={styles.greetingSection}>
-                    <Text style={styles.greeting}>Good Morning, {user?.name || "Alex"}!</Text>
+                    <Text style={styles.greeting}>{getGreeting()}, {user?.name || "Alex"}!</Text>
                     <Text style={styles.subGreeting}>Discover new recipes tailored just for you.</Text>
                 </View>
 

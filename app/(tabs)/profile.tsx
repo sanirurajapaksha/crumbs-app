@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { useStore, StoreState } from "../store/useStore";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 const { width } = Dimensions.get("window");
 const CARD_SIZE = (width - 48) / 2; // 2 columns with padding
@@ -15,7 +16,110 @@ export default function Profile() {
     const favorites = useStore((s: StoreState) => s.favorites);
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
+    const updateUserProfile = useStore((s: StoreState) => s.updateUserProfile);
     const [activeTab, setActiveTab] = useState<TabType>("myRecipes");
+
+    const showImagePickerOptions = () => {
+        const hasCustomAvatar = user?.avatarUrl && !user.avatarUrl.includes("shortifyme.co");
+
+        const options: any[] = [
+            {
+                text: "Take Photo",
+                onPress: pickImageFromCamera,
+            },
+            {
+                text: "Choose from Gallery",
+                onPress: pickImageFromGallery,
+            },
+        ];
+
+        // Add delete option only if user has a custom avatar
+        if (hasCustomAvatar) {
+            options.push({
+                text: "Remove Photo",
+                onPress: deleteProfilePicture,
+                style: "destructive",
+            });
+        }
+
+        options.push({
+            text: "Cancel",
+            style: "cancel",
+        });
+
+        Alert.alert("Update Profile Picture", "Choose an option", options, { cancelable: true });
+    };
+
+    const pickImageFromCamera = async () => {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (!permissionResult.granted) {
+            Alert.alert("Permission Required", "You need to grant camera permission to take photos.");
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: "images" as any,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets[0]) {
+            await updateUserProfile({ avatarUrl: result.assets[0].uri });
+        }
+    };
+
+    const pickImageFromGallery = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+            Alert.alert("Permission Required", "You need to grant gallery permission to choose photos.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: "images" as any,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets[0]) {
+            await updateUserProfile({ avatarUrl: result.assets[0].uri });
+        }
+    };
+
+    const deleteProfilePicture = () => {
+        Alert.alert(
+            "Remove Profile Picture",
+            "Are you sure you want to remove your profile picture? You'll get a default avatar instead.",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        // Remove the custom avatar URL to revert to generated avatar
+                        await updateUserProfile({ avatarUrl: undefined });
+                    },
+                },
+            ],
+            { cancelable: true }
+        );
+    };
+
+    // Generate unique avatar URL based on user ID if no custom avatar
+    const getAvatarUrl = () => {
+        if (user?.avatarUrl) {
+            return user.avatarUrl;
+        }
+        // Use default avatar image
+        return "https://shortifyme.co/815XJ";
+    };
 
     const getDisplayData = () => {
         switch (activeTab) {
@@ -34,7 +138,7 @@ export default function Profile() {
             case "likedPosts":
                 return likedPosts.map((p) => ({
                     id: p.id,
-                    title: p.text.substring(0, 50),
+                    title: p.name.substring(0, 50),
                     image: p.imageURL || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
                 }));
             default:
@@ -65,10 +169,13 @@ export default function Profile() {
                     <View style={styles.avatarContainer}>
                         <Image
                             source={{
-                                uri: user?.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
+                                uri: getAvatarUrl(),
                             }}
                             style={styles.avatar}
                         />
+                        <TouchableOpacity style={styles.cameraButton} onPress={showImagePickerOptions}>
+                            <Ionicons name="camera" size={20} color={colors.white} />
+                        </TouchableOpacity>
                     </View>
                     <Text style={styles.userName}>{user?.name || "Guest User"}</Text>
                     <Text style={styles.userBio}>{user?.bio || "Foodie & Recipe Creator"}</Text>
@@ -153,12 +260,30 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
-        overflow: "hidden",
+        position: "relative",
     },
     avatar: {
         width: 120,
         height: 120,
         borderRadius: 60,
+    },
+    cameraButton: {
+        position: "absolute",
+        bottom: -5,
+        right: -5,
+        backgroundColor: colors.accent,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 3,
+        borderColor: colors.white,
+        elevation: 5,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
     },
     userName: {
         fontSize: 24,

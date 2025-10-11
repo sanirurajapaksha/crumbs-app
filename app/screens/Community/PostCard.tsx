@@ -21,7 +21,7 @@ export default function PostCard(posts: CommunityPost) {
     const hero = posts.imageURL || generateFoodImage("Recipe", { width: 800, height: 600 });
     const authorName = posts.authorId || "Crumbs Cook";
     const handle = `@${(posts.authorId || "cook").replace(/\s+/g, "_")}`;
-    const title = posts.text?.length > 0 ? posts.text : "Shared a tasty dish";
+    const title = posts.name?.length > 0 ? posts.name : "Shared a tasty dish";
     const subtitle = posts.tags && posts.tags.length > 0 ? `Pro Tip: ${posts.tags.join(", ")}` : undefined;
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;

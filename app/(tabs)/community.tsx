@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
-import { useStore, StoreState } from "../store/useStore";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useStore, StoreState, useUtilFunctions, UtilFunctions } from "../store/useStore";
 import { Link } from "expo-router";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,9 +8,13 @@ import PostCard from "../screens/Community/PostCard";
 
 export default function CommunityScreen() {
     const posts = useStore((s: StoreState) => s.communityPosts);
+    const setLoading = useUtilFunctions((state: UtilFunctions) => state.setLoading);
+    const loading = useUtilFunctions((state: UtilFunctions) => state.loading);
+    // Loading the posts when needed and populate the zustand store
     const loadPosts = useStore((s: StoreState) => s.loadPosts);
     useEffect(() => {
-        loadPosts();
+        setLoading(true);
+        loadPosts().finally(() => setLoading(false));
     }, []); // eslint-disable-line
 
     return (
@@ -19,10 +23,12 @@ export default function CommunityScreen() {
                 <Text style={styles.headerTitle}>Community</Text>
             </View>
             <ScrollView contentContainerStyle={styles.listContent}>
-                {posts.length === 0 ? (
-                    <Text style={{ textAlign: "center", marginTop: 40, color: colors.neutral600 }}>No posts yet.</Text>
-                ) : (
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.accent} />
+                ) : posts.length > 0 ? (
                     posts.map((post) => <PostCard key={post.id} {...post} />)
+                ) : (
+                    <Text style={{ textAlign: "center", marginTop: 40, color: colors.neutral600 }}>No posts yet.</Text>
                 )}
             </ScrollView>
             <Link href={"/screens/Community/ShareRecipe" as any} asChild>

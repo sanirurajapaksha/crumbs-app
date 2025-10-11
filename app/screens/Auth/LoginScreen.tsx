@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, Alert } from "react-native";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { colors } from "../../theme/colors";
 import { useStore, StoreState } from "@/app/store/useStore";
+import { Ionicons } from "@expo/vector-icons";
 
 // TODO: Generate typed routes (npx expo-router generate) then remove `as any` casts across Link hrefs.
 export default function LoginScreen() {
     const login = useStore((s: StoreState) => s.login);
+    const resetPassword = useStore((s: StoreState) => s.resetPassword);
     const authLoading = useStore((s: StoreState) => s.authLoading);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = () => {
         if (!email.trim()) return Alert.alert("Email required", "Please enter your email.");
@@ -35,22 +38,30 @@ export default function LoginScreen() {
                         value={email}
                         onChangeText={setEmail}
                     />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Password"
-                        placeholderTextColor={colors.neutral500}
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Password"
+                            placeholderTextColor={colors.neutral500}
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                        {password.length > 0 && (
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowPassword(!showPassword)}
+                            >
+                                <Ionicons
+                                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                    size={22}
+                                    color={colors.neutral500}
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                     <TouchableOpacity
-                        onPress={() => {
-                            if (!email.trim()) return Alert.alert("Email required", "Enter your email to reset password.");
-                            const reset = useStore.getState().resetPassword;
-                            reset?.(email.trim())
-                                .then(() => Alert.alert("Reset email sent", "Check your inbox for reset instructions."))
-                                .catch((e: any) => Alert.alert("Reset failed", e?.message || String(e)));
-                        }}
+                        onPress={() => router.push("/screens/Auth/ForgotPasswordScreen" as any)}
                     >
                         <Text style={styles.forgotLink}>Forgot password?</Text>
                     </TouchableOpacity>
@@ -101,6 +112,25 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         fontSize: 14,
         marginBottom: 14,
+    },
+    passwordContainer: {
+        position: "relative",
+        marginBottom: 14,
+    },
+    passwordInput: {
+        backgroundColor: colors.neutral50,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        paddingRight: 50,
+        borderRadius: 24,
+        fontSize: 14,
+    },
+    eyeIcon: {
+        position: "absolute",
+        right: 18,
+        top: "40%",
+        transform: [{ translateY: -11 }],
+        padding: 4,
     },
     primaryBtn: {
         backgroundColor: colors.accent,
