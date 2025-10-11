@@ -1,9 +1,9 @@
 import { colors } from "@/app/theme/colors";
 import { CommunityPost } from "@/app/types";
 import { generateFoodImage } from "@/app/utils/imageUtils";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 function timeAgo(iso?: string) {
     if (!iso) return "now";

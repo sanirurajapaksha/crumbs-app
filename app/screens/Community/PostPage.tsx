@@ -1,12 +1,12 @@
-import { Chip } from "@/app/components/Chip";
-import { StoreState, useStore } from "@/app/store/useStore";
+import React, { useMemo, useState } from "react";
+import { KeyboardAvoidingView, Platform, Text, StyleSheet, View, Image, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { colors } from "@/app/theme/colors";
-import type { CommunityPost } from "@/app/types";
-import { generateFoodImage } from "@/app/utils/imageUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useStore, StoreState } from "@/app/store/useStore";
+import type { CommunityPost } from "@/app/types";
+import { generateFoodImage } from "@/app/utils/imageUtils";
+import { Chip } from "@/app/components/Chip";
 import CommentSection from "./CommentSection";
 
 export default function PostPage() {
