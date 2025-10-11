@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useStore, StoreState } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import * as Speech from 'expo-speech';
+import { recordAndTranscribeVoiceCommand, VoiceCommandResult } from '../../api/voiceCommandApi';
 
 const { width } = Dimensions.get("window");
 
@@ -18,6 +19,8 @@ export default function StepDetail() {
     const [imageLoading, setImageLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [showVoiceCommands, setShowVoiceCommands] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [recognizedText, setRecognizedText] = useState('');
 
     // Check both favorites and myRecipes
     let recipe = favorites.find((r: any) => r.id === id);
@@ -104,9 +107,11 @@ export default function StepDetail() {
             await Speech.stop();
             setIsSpeaking(false);
             setShowVoiceCommands(false);
+            setIsListening(false);
         } else {
             // Start speaking
             setIsSpeaking(true);
+            setRecognizedText('');
             const textToSpeak = `Step ${current.stepNumber}. ${current.text}`;
             
             Speech.speak(textToSpeak, {
@@ -115,8 +120,9 @@ export default function StepDetail() {
                 rate: 0.85,
                 onDone: () => {
                     setIsSpeaking(false);
-                    // Show voice command buttons after speech ends
+                    // Show voice command prompt and start listening
                     setShowVoiceCommands(true);
+                    startVoiceRecognition();
                 },
                 onStopped: () => {
                     setIsSpeaking(false);
@@ -132,13 +138,57 @@ export default function StepDetail() {
         }
     };
 
+    // Voice Recognition with Groq Whisper
+    const startVoiceRecognition = async () => {
+        try {
+            setIsListening(true);
+            setRecognizedText('Listening...');
+            
+            console.log('🎤 Starting voice recognition...');
+            
+            // Record and transcribe audio
+            const result: VoiceCommandResult = await recordAndTranscribeVoiceCommand();
+            
+            setRecognizedText(`You said: "${result.transcript}"`);
+            setIsListening(false);
+            
+            // Execute the command
+            if (result.command !== 'unknown') {
+                setTimeout(() => {
+                    handleVoiceCommand(result.command as 'next' | 'previous' | 'repeat');
+                }, 500);
+            } else {
+                Alert.alert(
+                    'Command not recognized', 
+                    `I heard: "${result.transcript}"\n\nPlease say "Next", "Previous", or "Repeat"`,
+                    [
+                        { text: 'Try Again', onPress: () => startVoiceRecognition() },
+                        { text: 'Cancel', style: 'cancel', onPress: () => setShowVoiceCommands(false) }
+                    ]
+                );
+            }
+            
+        } catch (error: any) {
+            console.error('❌ Voice recognition error:', error);
+            setIsListening(false);
+            setRecognizedText('');
+            
+            Alert.alert(
+                'Voice Recognition Error', 
+                error.message || 'Failed to recognize voice command. Please use the buttons below.',
+                [{ text: 'OK', onPress: () => setShowVoiceCommands(true) }]
+            );
+        }
+    };
+
     // Voice command handlers
-    const handleVoiceCommand = (command: 'next' | 'back' | 'repeat') => {
+    const handleVoiceCommand = (command: 'next' | 'previous' | 'repeat') => {
         setShowVoiceCommands(false);
+        setRecognizedText('');
         
         if (command === 'next') {
             go(1);
-        } else if (command === 'back') {
+        } else if (command === 'previous') {
             go(-1);
         } else if (command === 'repeat') {
             handleSpeak();
@@ -228,35 +278,57 @@ export default function StepDetail() {
                     {/* Voice Command Buttons */}
                     {showVoiceCommands && (
                         <View style={styles.voiceCommandsContainer}>
-                            <Text style={styles.voiceCommandsTitle}>What would you like to do?</Text>
-                            <View style={styles.voiceCommandButtons}>
-                                <TouchableOpacity 
-                                    style={[styles.voiceCommandButton, idx === 0 && styles.voiceCommandButtonDisabled]} 
-                                    onPress={() => handleVoiceCommand('back')}
-                                    disabled={idx === 0}
-                                >
-                                    <MaterialIcons name="arrow-back" size={20} color={idx === 0 ? "#ccc" : colors.accent} />
-                                    <Text style={[styles.voiceCommandButtonText, idx === 0 && styles.voiceCommandButtonTextDisabled]}>
-                                        Previous
+                            {isListening ? (
+                                <View style={styles.listeningContainer}>
+                                    <ActivityIndicator size="large" color={colors.accent} />
+                                    <MaterialIcons name="mic" size={40} color={colors.accent} style={{ marginTop: 12 }} />
+                                    <Text style={styles.listeningText}>{recognizedText || 'Listening...'}</Text>
+                                    <Text style={styles.listeningSubtext}>
+                                        Say "Next", "Previous", or "Repeat"
                                     </Text>
-                                </TouchableOpacity>
-                                
-                                <TouchableOpacity 
-                                    style={styles.voiceCommandButton} 
-                                    onPress={() => handleVoiceCommand('repeat')}
-                                >
-                                    <MaterialIcons name="replay" size={20} color={colors.accent} />
-                                    <Text style={styles.voiceCommandButtonText}>Repeat</Text>
-                                </TouchableOpacity>
-                                
-                                <TouchableOpacity 
-                                    style={[styles.voiceCommandButton, styles.voiceCommandButtonPrimary]} 
-                                    onPress={() => handleVoiceCommand('next')}
-                                >
-                                    <Text style={styles.voiceCommandButtonTextPrimary}>Next</Text>
-                                    <MaterialIcons name="arrow-forward" size={20} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
+                                </View>
+                            ) : (
+                                <>
+                                    <Text style={styles.voiceCommandsTitle}>
+                                        {recognizedText || "Say a command or tap a button"}
+                                    </Text>
+                                    <View style={styles.voiceCommandButtons}>
+                                        <TouchableOpacity 
+                                            style={[styles.voiceCommandButton, idx === 0 && styles.voiceCommandButtonDisabled]} 
+                                            onPress={() => handleVoiceCommand('previous')}
+                                            disabled={idx === 0}
+                                        >
+                                            <MaterialIcons name="arrow-back" size={20} color={idx === 0 ? "#ccc" : colors.accent} />
+                                            <Text style={[styles.voiceCommandButtonText, idx === 0 && styles.voiceCommandButtonTextDisabled]}>
+                                                Previous
+                                            </Text>
+                                        </TouchableOpacity>
+                                        
+                                        <TouchableOpacity 
+                                            style={styles.voiceCommandButton} 
+                                            onPress={() => handleVoiceCommand('repeat')}
+                                        >
+                                            <MaterialIcons name="replay" size={20} color={colors.accent} />
+                                            <Text style={styles.voiceCommandButtonText}>Repeat</Text>
+                                        </TouchableOpacity>
+                                        
+                                        <TouchableOpacity 
+                                            style={[styles.voiceCommandButton, styles.voiceCommandButtonPrimary]} 
+                                            onPress={() => handleVoiceCommand('next')}
+                                        >
+                                            <Text style={styles.voiceCommandButtonTextPrimary}>Next</Text>
+                                            <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <TouchableOpacity 
+                                        style={styles.tryAgainButton}
+                                        onPress={startVoiceRecognition}
+                                    >
+                                        <MaterialIcons name="mic" size={18} color={colors.accent} />
+                                        <Text style={styles.tryAgainButtonText}>Use Voice Command</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </View>
                     )}
 
@@ -506,6 +578,42 @@ const styles = StyleSheet.create({
     },
     voiceCommandButtonTextDisabled: {
         color: "#ccc",
+    },
+    listeningContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 30,
+    },
+    listeningText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginTop: 16,
+        textAlign: "center",
+    },
+    listeningSubtext: {
+        fontSize: 14,
+        color: colors.textMuted,
+        marginTop: 8,
+        textAlign: "center",
+    },
+    tryAgainButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFF5F0",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        marginTop: 12,
+        gap: 8,
+        borderWidth: 1.5,
+        borderColor: colors.accent,
+    },
+    tryAgainButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.accent,
     },
     stepImage: {
         width: "100%",
