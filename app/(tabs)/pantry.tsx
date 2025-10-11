@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import React, { useState } from "react";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { EditIngredientModal } from "../components/EditIngredientModal";
 import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
@@ -151,20 +151,25 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
     const expiryInfo = getExpiryStatus(item.expiryDate);
 
     return (
-        <View style={styles.itemCard}>
+        <TouchableOpacity style={styles.itemCard} onPress={() => onEdit(item)} activeOpacity={0.7}>
             <PantryItemImage item={item} />
             <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQuantity}>{item.quantity || "1 unit"}</Text>
+                <Text style={styles.itemName} numberOfLines={1}>
+                    {item.name}
+                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <MaterialIcons name="inventory-2" size={14} color={colors.textMuted} />
+                    <Text style={styles.itemQuantity}>{item.quantity || "1 unit"}</Text>
+                </View>
             </View>
             <View style={styles.itemStatus}>
-                <Text style={[styles.statusText, { color: expiryInfo.color }]}>{expiryInfo.status}</Text>
-                {expiryInfo.daysLeft && <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>}
+                <View style={[styles.statusBadge, { backgroundColor: `${expiryInfo.color}15` }]}>
+                    <Text style={[styles.statusText, { color: expiryInfo.color }]}>{expiryInfo.status}</Text>
+                </View>
+                {expiryInfo.daysLeft && expiryInfo.status !== "Expired" && <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>}
             </View>
-            <TouchableOpacity style={styles.editButton} onPress={() => onEdit(item)}>
-                <MaterialIcons name="edit" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-        </View>
+            <MaterialIcons name="chevron-right" size={24} color={colors.textMuted} />
+        </TouchableOpacity>
     );
 };
 
@@ -191,9 +196,47 @@ export default function PantryTab() {
     const items = useStore((s: StoreState) => s.pantryItems);
     const updatePantryItem = useStore((s: StoreState) => s.updatePantryItem);
     const removePantryItem = useStore((s: StoreState) => s.removePantryItem);
-    const categorizedItems = categorizeItems(items);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterView, setFilterView] = useState<"all" | "expiring">("all");
+
+    // Filter and categorize items
+    const filteredItems = useMemo(() => {
+        let filtered = items;
+
+        // Search filter
+        if (searchQuery.trim()) {
+            filtered = filtered.filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+
+        // Expiring filter
+        if (filterView === "expiring") {
+            filtered = filtered.filter((item) => {
+                if (!item.expiryDate) return false;
+                const expiry = new Date(item.expiryDate);
+                const today = new Date();
+                const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                return diffDays <= 3 && diffDays >= 0;
+            });
+        }
+
+        return filtered;
+    }, [items, searchQuery, filterView]);
+
+    const categorizedItems = useMemo(() => categorizeItems(filteredItems), [filteredItems]);
+
+    // Count stats
+    const totalItems = items.length;
+    const expiringCount = useMemo(() => {
+        return items.filter((item) => {
+            if (!item.expiryDate) return false;
+            const expiry = new Date(item.expiryDate);
+            const today = new Date();
+            const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            return diffDays <= 3 && diffDays >= 0;
+        }).length;
+    }, [items]);
 
     const handleEditItem = (item: PantryItem) => {
         setEditingItem(item);
@@ -214,23 +257,69 @@ export default function PantryTab() {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* Header with gradient background */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Pantry</Text>
-                <View style={styles.headerButtons}>
-                    <Link href={"/screens/Pantry/CameraScreen" as any} asChild>
-                        <TouchableOpacity style={styles.cameraButton}>
-                            <MaterialIcons name="camera-alt" size={20} color={colors.white} />
+                <View style={styles.headerTop}>
+                    <View>
+                        <Text style={styles.headerTitle}>My Pantry</Text>
+                        <Text style={styles.headerSubtitle}>{totalItems} items in stock</Text>
+                    </View>
+                    <View style={styles.headerActions}>
+                        <Link href={"/screens/Pantry/CameraScreen" as any} asChild>
+                            <TouchableOpacity style={styles.iconButton}>
+                                <MaterialIcons name="camera-alt" size={24} color={colors.accent} />
+                            </TouchableOpacity>
+                        </Link>
+                        <Link href={"/screens/Pantry/PantryInput" as any} asChild>
+                            <TouchableOpacity style={styles.addButtonNew}>
+                                <MaterialIcons name="add" size={24} color={colors.white} />
+                            </TouchableOpacity>
+                        </Link>
+                    </View>
+                </View>
+
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search ingredients..."
+                        placeholderTextColor={colors.textMuted}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
+                            <MaterialIcons name="close" size={18} color={colors.textMuted} />
                         </TouchableOpacity>
-                    </Link>
-                    <Link href={"/screens/Pantry/PantryInput" as any} asChild>
-                        <TouchableOpacity style={styles.addButton}>
-                            <Text style={styles.addButtonText}>Add Item</Text>
-                            <View style={styles.addIcon}>
-                                <Text style={styles.addIconText}>+</Text>
+                    )}
+                </View>
+
+                {/* Filter Chips */}
+                <View style={styles.filterContainer}>
+                    <TouchableOpacity
+                        style={[styles.filterChip, filterView === "all" && styles.filterChipActive]}
+                        onPress={() => setFilterView("all")}
+                    >
+                        <Text style={[styles.filterChipText, filterView === "all" && styles.filterChipTextActive]}>All Items</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.filterChip, filterView === "expiring" && styles.filterChipActive]}
+                        onPress={() => setFilterView("expiring")}
+                    >
+                        <MaterialIcons
+                            name="schedule"
+                            size={16}
+                            color={filterView === "expiring" ? colors.white : colors.accent}
+                            style={{ marginRight: 4 }}
+                        />
+                        <Text style={[styles.filterChipText, filterView === "expiring" && styles.filterChipTextActive]}>Expiring Soon</Text>
+                        {expiringCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{expiringCount}</Text>
                             </View>
-                        </TouchableOpacity>
-                    </Link>
+                        )}
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -254,10 +343,31 @@ export default function PantryTab() {
                 {/* Empty state */}
                 {items.length === 0 && (
                     <View style={styles.emptyState}>
+                        <View style={styles.emptyIconContainer}>
+                            <MaterialIcons name="kitchen" size={64} color={colors.neutral400} />
+                        </View>
                         <Text style={styles.emptyStateText}>Your pantry is empty</Text>
-                        <Text style={styles.emptyStateSubtext}>Add items to get started</Text>
+                        <Text style={styles.emptyStateSubtext}>Start adding ingredients to track your stock</Text>
+                        <Link href={"/screens/Pantry/PantryInput" as any} asChild>
+                            <TouchableOpacity style={styles.emptyStateButton}>
+                                <MaterialIcons name="add" size={20} color={colors.white} />
+                                <Text style={styles.emptyStateButtonText}>Add Your First Item</Text>
+                            </TouchableOpacity>
+                        </Link>
                     </View>
                 )}
+
+                {/* No results state */}
+                {items.length > 0 && filteredItems.length === 0 && (
+                    <View style={styles.emptyState}>
+                        <MaterialIcons name="search-off" size={64} color={colors.neutral400} />
+                        <Text style={styles.emptyStateText}>No items found</Text>
+                        <Text style={styles.emptyStateSubtext}>Try adjusting your search or filters</Text>
+                    </View>
+                )}
+
+                {/* Bottom padding */}
+                <View style={{ height: 100 }} />
             </ScrollView>
 
             {/* Edit Ingredient Modal */}
@@ -278,160 +388,267 @@ export default function PantryTab() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.neutral100,
+        backgroundColor: colors.white,
     },
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
+        backgroundColor: colors.white,
         paddingHorizontal: 20,
         paddingTop: 60,
-        paddingBottom: 16,
-        backgroundColor: `${colors.neutral100}CC`, // 80% opacity
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: colors.border,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    headerTop: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        marginBottom: 20,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: "bold",
+        fontSize: 32,
+        fontWeight: "800",
         color: colors.textPrimary,
-        fontFamily: "System",
+        letterSpacing: -0.5,
     },
-    addButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
+    headerSubtitle: {
+        fontSize: 14,
+        color: colors.textMuted,
+        marginTop: 4,
+        fontWeight: "500",
     },
-    headerButtons: {
+    headerActions: {
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
     },
-    cameraButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    iconButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: `${colors.accent}15`,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    addButtonNew: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: colors.accent,
         justifyContent: "center",
         alignItems: "center",
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    addButtonText: {
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.neutral100,
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 48,
+        marginBottom: 16,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: colors.textPrimary,
+        fontWeight: "500",
+    },
+    clearButton: {
+        padding: 4,
+    },
+    filterContainer: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    filterChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: `${colors.accent}15`,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    filterChipActive: {
+        backgroundColor: colors.accent,
+        borderColor: colors.accent,
+    },
+    filterChipText: {
         fontSize: 14,
-        fontWeight: "bold",
+        fontWeight: "600",
         color: colors.accent,
     },
-    addIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: `${colors.accent}33`, // 20% opacity
-        justifyContent: "center",
+    filterChipTextActive: {
+        color: colors.white,
+    },
+    badge: {
+        backgroundColor: colors.white,
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginLeft: 6,
+        minWidth: 20,
         alignItems: "center",
     },
-    addIconText: {
-        fontSize: 16,
-        fontWeight: "bold",
+    badgeText: {
+        fontSize: 11,
+        fontWeight: "700",
         color: colors.accent,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        backgroundColor: colors.neutral50,
     },
     categorySection: {
-        marginVertical: 16,
+        marginTop: 24,
     },
     categoryTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
+        fontSize: 18,
+        fontWeight: "700",
         color: colors.textPrimary,
-        marginBottom: 16,
-        fontFamily: "System",
+        marginBottom: 12,
+        paddingLeft: 4,
     },
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: colors.white,
-        borderRadius: 32,
-        padding: 12,
-        marginBottom: 12,
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 10,
         shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     itemImage: {
-        width: 56,
-        height: 56,
-        borderRadius: 32,
-        backgroundColor: colors.neutral200,
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        backgroundColor: colors.neutral100,
     },
     itemInfo: {
         flex: 1,
         marginLeft: 16,
     },
     itemName: {
-        fontSize: 16,
-        fontWeight: "bold",
+        fontSize: 17,
+        fontWeight: "700",
         color: colors.textPrimary,
-        marginBottom: 4,
-        fontFamily: "System",
+        marginBottom: 6,
+        letterSpacing: -0.3,
     },
     itemQuantity: {
         fontSize: 14,
-        color: `${colors.textPrimary}99`, // 60% opacity
-        fontFamily: "System",
+        color: colors.textMuted,
+        fontWeight: "500",
     },
     itemStatus: {
         alignItems: "flex-end",
-        minWidth: 80,
+        minWidth: 90,
+        marginRight: 8,
+    },
+    statusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginBottom: 4,
     },
     statusText: {
-        fontSize: 14,
-        fontWeight: "500",
-        marginBottom: 2,
-        fontFamily: "System",
+        fontSize: 11,
+        fontWeight: "700",
+        textTransform: "uppercase",
+        letterSpacing: 0.8,
     },
     daysLeftText: {
-        fontSize: 12,
-        color: `${colors.textPrimary}99`, // 60% opacity
-        fontFamily: "System",
+        fontSize: 11,
+        color: colors.textMuted,
+        fontWeight: "600",
+        textAlign: "right",
     },
     editButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: colors.neutral200,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.neutral100,
         justifyContent: "center",
         alignItems: "center",
-        marginLeft: 8,
     },
     emptyState: {
         alignItems: "center",
-        paddingVertical: 60,
+        justifyContent: "center",
+        paddingVertical: 80,
+        paddingHorizontal: 40,
+    },
+    emptyIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: colors.neutral100,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 24,
     },
     emptyStateText: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: colors.textSecondary,
+        fontSize: 22,
+        fontWeight: "700",
+        color: colors.textPrimary,
         marginBottom: 8,
+        textAlign: "center",
     },
     emptyStateSubtext: {
-        fontSize: 14,
+        fontSize: 15,
         color: colors.textMuted,
+        textAlign: "center",
+        lineHeight: 22,
+        marginBottom: 32,
+    },
+    emptyStateButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: colors.accent,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 16,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    emptyStateButtonText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.white,
     },
     // Image component styles
     imageContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 32,
-        backgroundColor: colors.neutral200,
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        backgroundColor: colors.neutral100,
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
+        overflow: "hidden",
     },
     imageLoader: {
         position: "absolute",
@@ -441,23 +658,23 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.neutral200,
-        borderRadius: 32,
+        backgroundColor: colors.neutral100,
+        borderRadius: 16,
         zIndex: 2,
     },
     imageFallback: {
-        width: 56,
-        height: 56,
-        borderRadius: 32,
-        backgroundColor: colors.neutral300,
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        backgroundColor: colors.neutral200,
         justifyContent: "center",
         alignItems: "center",
     },
     imageFallbackText: {
-        fontSize: 8,
+        fontSize: 9,
         color: colors.textMuted,
         textAlign: "center",
-        fontWeight: "500",
+        fontWeight: "600",
         marginTop: 2,
     },
 });
