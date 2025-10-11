@@ -3,10 +3,12 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
+import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
+import { processFoodIngredients } from "../../utils/speechUtils";
 
 interface IngredientItem {
     id: string;
@@ -40,15 +42,15 @@ export default function PantryInput() {
                 id: `${Date.now()}-${Math.random()}`,
                 name: name.trim(),
                 quantity: "1",
-                category: "other"
+                category: "other",
             };
-            setIngredients(prev => [...prev, newItem]);
+            setIngredients((prev) => [...prev, newItem]);
             setNewIngredient("");
         }
     };
 
     const handleEditIngredient = (id: string) => {
-        const ingredient = ingredients.find(item => item.id === id);
+        const ingredient = ingredients.find((item) => item.id === id);
         if (ingredient) {
             setEditingIngredient(ingredient);
             setEditModalVisible(true);
@@ -56,30 +58,22 @@ export default function PantryInput() {
     };
 
     const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
-        setIngredients(prev => 
-            prev.map(item => 
-                item.id === updatedIngredient.id ? updatedIngredient : item
-            )
-        );
+        setIngredients((prev) => prev.map((item) => (item.id === updatedIngredient.id ? updatedIngredient : item)));
         setEditModalVisible(false);
         setEditingIngredient(null);
     };
 
     const handleDeleteIngredient = (id: string) => {
-        Alert.alert(
-            "Delete Ingredient",
-            "Are you sure you want to remove this ingredient?",
-            [
-                { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Delete", 
-                    style: "destructive",
-                    onPress: () => {
-                        setIngredients(prev => prev.filter(item => item.id !== id));
-                    }
-                }
-            ]
-        );
+        Alert.alert("Delete Ingredient", "Are you sure you want to remove this ingredient?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => {
+                    setIngredients((prev) => prev.filter((item) => item.id !== id));
+                },
+            },
+        ]);
     };
 
     const openCamera = () => {
@@ -87,9 +81,27 @@ export default function PantryInput() {
         router.push("./CameraScreen");
     };
 
-    const mockVoice = () => {
-        // TODO (Voice/Gemini): speech to pantry items
-        ["Garlic", "Lemon"].forEach(handleAddIngredient);
+    const handleVoiceTranscript = (text: string) => {
+        // Process transcript to extract only food ingredients and remove duplicates
+        const foodIngredients = processFoodIngredients(text);
+
+        // Get existing ingredient names for duplicate checking
+        const existingNames = ingredients.map((item) => item.name.toLowerCase());
+
+        // Filter out duplicates
+        const newIngredients = foodIngredients.filter((name) => !existingNames.includes(name.toLowerCase()));
+
+        if (newIngredients.length === 0) {
+            Alert.alert("No New Ingredients", "All mentioned items are already in your list or were filtered out.", [{ text: "OK" }]);
+            return;
+        }
+
+        // Add each unique food ingredient
+        newIngredients.forEach((ing) => handleAddIngredient(ing));
+
+        if (newIngredients.length > 0) {
+            Alert.alert("Voice Input", `Added ${newIngredients.length} food ingredient(s): ${newIngredients.join(", ")}`, [{ text: "OK" }]);
+        }
     };
 
     const handleAddToPantry = () => {
@@ -99,7 +111,7 @@ export default function PantryInput() {
         }
 
         // Convert ingredients to pantry items and add them
-        ingredients.forEach(ingredient => {
+        ingredients.forEach((ingredient) => {
             const pantryItem: PantryItem = {
                 id: `pantry-${ingredient.id}`,
                 name: ingredient.name,
@@ -111,11 +123,7 @@ export default function PantryInput() {
             addPantryItem(pantryItem);
         });
 
-        Alert.alert(
-            "Success!",
-            `Added ${ingredients.length} items to your pantry.`,
-            [{ text: "OK", onPress: () => setIngredients([]) }]
-        );
+        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
     };
 
     const handleGenerateRecipe = async () => {
@@ -126,7 +134,7 @@ export default function PantryInput() {
 
         // Add current ingredients to pantry first
         if (ingredients.length > 0) {
-            ingredients.forEach(ingredient => {
+            ingredients.forEach((ingredient) => {
                 const pantryItem: PantryItem = {
                     id: `pantry-${ingredient.id}`,
                     name: ingredient.name,
@@ -141,14 +149,16 @@ export default function PantryInput() {
 
         setLoading(true);
         try {
-            const recipe = await generateRecipeMock(pantryItems.concat(
-                ingredients.map(ing => ({
-                    id: ing.id,
-                    name: ing.name,
-                    quantity: ing.quantity,
-                    category: ing.category
-                }))
-            ));
+            const recipe = await generateRecipeMock(
+                pantryItems.concat(
+                    ingredients.map((ing) => ({
+                        id: ing.id,
+                        name: ing.name,
+                        quantity: ing.quantity,
+                        category: ing.category,
+                    }))
+                )
+            );
             // Using imperative navigation because recipe id is only known after async call
             router.push({ pathname: "./RecipeDetail", params: { id: recipe.id } });
             setIngredients([]); // Clear ingredients after generating recipe
@@ -177,10 +187,10 @@ export default function PantryInput() {
                             <Ionicons name="camera" size={24} color={colors.textSecondary} />
                             <Text style={styles.toolLabel}>Camera</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={mockVoice} style={styles.tool}>
-                            <Ionicons name="mic" size={24} color={colors.textSecondary} />
+                        <View style={styles.tool}>
+                            <VoiceInputButton onTranscript={handleVoiceTranscript} size={24} color={colors.textSecondary} />
                             <Text style={styles.toolLabel}>Voice</Text>
-                        </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -212,10 +222,18 @@ export default function PantryInput() {
                             onChangeText={setNewIngredient}
                             onSubmitEditing={() => handleAddIngredient(newIngredient)}
                         />
-                        <TouchableOpacity 
-                            style={styles.addNewButton}
-                            onPress={() => handleAddIngredient(newIngredient)}
-                        >
+                        <VoiceInputButton
+                            onTranscript={(text) => {
+                                const items = text
+                                    .split(/[,\s]+/)
+                                    .map((w) => w.trim())
+                                    .filter((w) => w.length > 0);
+                                items.forEach((ing) => handleAddIngredient(ing));
+                            }}
+                            size={20}
+                            color={colors.accent}
+                        />
+                        <TouchableOpacity style={styles.addNewButton} onPress={() => handleAddIngredient(newIngredient)}>
                             <Ionicons name="add" size={24} color={colors.white} />
                         </TouchableOpacity>
                     </View>
@@ -229,21 +247,13 @@ export default function PantryInput() {
                             <View key={ingredient.id} style={styles.ingredientItem}>
                                 <View style={styles.ingredientInfo}>
                                     <Text style={styles.ingredientName}>{ingredient.name}</Text>
-                                    {ingredient.quantity && (
-                                        <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>
-                                    )}
+                                    {ingredient.quantity && <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>}
                                 </View>
                                 <View style={styles.ingredientActions}>
-                                    <TouchableOpacity 
-                                        onPress={() => handleEditIngredient(ingredient.id)}
-                                        style={styles.actionButton}
-                                    >
+                                    <TouchableOpacity onPress={() => handleEditIngredient(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="edit" size={18} color={colors.textMuted} />
                                     </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        onPress={() => handleDeleteIngredient(ingredient.id)}
-                                        style={styles.actionButton}
-                                    >
+                                    <TouchableOpacity onPress={() => handleDeleteIngredient(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="delete" size={18} color={colors.danger} />
                                     </TouchableOpacity>
                                 </View>
@@ -256,21 +266,16 @@ export default function PantryInput() {
             {/* Action Buttons */}
             <View style={styles.footer}>
                 {ingredients.length > 0 && (
-                    <TouchableOpacity 
-                        style={styles.addToPantryButton}
-                        onPress={handleAddToPantry}
-                    >
+                    <TouchableOpacity style={styles.addToPantryButton} onPress={handleAddToPantry}>
                         <Text style={styles.addToPantryText}>Add To Pantry</Text>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity 
+                <TouchableOpacity
                     disabled={loading}
                     style={[styles.generateButton, loading && styles.generateButtonDisabled]}
                     onPress={handleGenerateRecipe}
                 >
-                    <Text style={styles.generateButtonText}>
-                        {loading ? "Generating..." : "Generate Recipe"}
-                    </Text>
+                    <Text style={styles.generateButtonText}>{loading ? "Generating..." : "Generate Recipe"}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -331,14 +336,14 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         marginBottom: 12,
     },
-    actionsRow: { 
-        flexDirection: "row", 
+    actionsRow: {
+        flexDirection: "row",
         gap: 16,
         marginBottom: 8,
     },
-    tool: { 
-        backgroundColor: colors.neutral200, 
-        padding: 12, 
+    tool: {
+        backgroundColor: colors.neutral200,
+        padding: 12,
         borderRadius: 12,
         alignItems: "center",
         flex: 1,

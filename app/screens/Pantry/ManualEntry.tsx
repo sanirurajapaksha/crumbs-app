@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { categorizeIngredient } from "../../api/groqApi";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
+import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
+import { processFoodIngredients } from "../../utils/speechUtils";
 
 interface IngredientItem {
     id: string;
@@ -190,6 +192,38 @@ export default function ManualEntry() {
                             onChangeText={setNewIngredient}
                             onSubmitEditing={() => handleAddIngredient(newIngredient)}
                             editable={!isCategorizingIngredient}
+                        />
+                        <VoiceInputButton
+                            onTranscript={(text) => {
+                                // Process transcript to extract only food ingredients and remove duplicates
+                                const foodIngredients = processFoodIngredients(text);
+
+                                // Get existing ingredient names for duplicate checking
+                                const existingNames = ingredients.map((item) => item.name.toLowerCase());
+
+                                // Filter out duplicates
+                                const newIngredients = foodIngredients.filter((name) => !existingNames.includes(name.toLowerCase()));
+
+                                if (newIngredients.length === 0) {
+                                    Alert.alert("No New Ingredients", "All mentioned items are already in your list or were filtered out.", [
+                                        { text: "OK" },
+                                    ]);
+                                    return;
+                                }
+
+                                // Add each unique food ingredient
+                                newIngredients.forEach((ing) => handleAddIngredient(ing));
+
+                                if (newIngredients.length > 0) {
+                                    Alert.alert(
+                                        "Ingredients Added",
+                                        `Added ${newIngredients.length} food ingredient(s): ${newIngredients.join(", ")}`,
+                                        [{ text: "OK" }]
+                                    );
+                                }
+                            }}
+                            disabled={isCategorizingIngredient}
+                            color={colors.accent}
                         />
                         <TouchableOpacity
                             style={[styles.addNewButton, isCategorizingIngredient && styles.buttonDisabled]}
