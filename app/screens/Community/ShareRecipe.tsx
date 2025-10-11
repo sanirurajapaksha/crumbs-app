@@ -22,6 +22,8 @@ export default function ShareRecipe() {
         const newPost: CommunityPost = {
             id: Math.random().toString(36).substring(2, 15),
             authorId: user?.id as string,
+            authorName: user?.name || "Anonymous",
+            authorAvatarUrl: user?.avatarUrl || "",
             imageURL: imageURL,
             name: mealName.trim(),
             description: description.trim(),
