@@ -19,8 +19,6 @@ import {
 export default function PantryInput() {
     const router = useRouter();
     const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
-    const pantryItems = useStore((s: StoreState) => s.pantryItems);
-    const generateRecipeMock = useStore((s: StoreState) => s.generateRecipeMock);
     const [ingredients, setIngredients] = useState<PantryItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [loading, setLoading] = useState(false);
@@ -68,51 +66,6 @@ export default function PantryInput() {
         } catch (error) {
             console.error("[PantryInput] Error adding to pantry:", error);
             Alert.alert("Error", "Failed to add items to pantry. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleGenerateRecipe = async () => {
-        if (ingredients.length === 0 && pantryItems.length === 0) {
-            Alert.alert("No Items", "Please add some ingredients to generate a recipe.");
-            return;
-        }
-
-        setLoading(true);
-        try {
-            // Add current ingredients to pantry first if there are any
-            if (ingredients.length > 0) {
-                const pantryItemsToAdd = ingredients.map((ingredient) => ({
-                    ...ingredient,
-                    id: `pantry-${ingredient.id}`,
-                    addedAt: new Date().toISOString(),
-                    imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-                }));
-                await addBatchPantryItems(pantryItemsToAdd);
-            }
-
-            // Use current pantry items for recipe generation
-            const allPantryItems = ingredients.length > 0 
-                ? pantryItems.concat(
-                    ingredients.map((ing) => ({
-                        id: ing.id,
-                        name: ing.name,
-                        quantity: ing.quantity,
-                        category: ing.category,
-                        addedAt: new Date().toISOString(),
-                        imageUrl: generateFoodImage(ing.name, { width: 200, height: 200 }),
-                    }))
-                )
-                : pantryItems;
-
-            const recipe = await generateRecipeMock(allPantryItems);
-            // Using imperative navigation because recipe id is only known after async call
-            router.push({ pathname: "./RecipeDetail", params: { id: recipe.id } });
-            setIngredients([]); // Clear ingredients after generating recipe
-        } catch (error) {
-            console.error("[PantryInput] Error generating recipe:", error);
-            Alert.alert("Error", "Failed to generate recipe. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -217,17 +170,16 @@ export default function PantryInput() {
             {/* Action Buttons */}
             <View style={styles.footer}>
                 {ingredients.length > 0 && (
-                    <TouchableOpacity style={styles.addToPantryButton} onPress={handleAddToPantry}>
-                        <Text style={styles.addToPantryText}>Add To Pantry</Text>
+                    <TouchableOpacity 
+                        style={[styles.addToPantryButton, loading && styles.buttonDisabled]} 
+                        onPress={handleAddToPantry}
+                        disabled={loading}
+                    >
+                        <Text style={styles.addToPantryText}>
+                            {loading ? "Adding..." : "Add To Pantry"}
+                        </Text>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity
-                    disabled={loading}
-                    style={[styles.generateButton, loading && styles.generateButtonDisabled]}
-                    onPress={handleGenerateRecipe}
-                >
-                    <Text style={styles.generateButtonText}>{loading ? "Generating..." : "Generate Recipe"}</Text>
-                </TouchableOpacity>
             </View>
 
             {/* Edit Ingredient Modal */}
@@ -457,25 +409,8 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         letterSpacing: 0.5,
     },
-    generateButton: {
-        backgroundColor: colors.accent,
-        borderRadius: 16,
-        paddingVertical: 18,
-        alignItems: "center",
-        elevation: 3,
-        shadowColor: colors.accent,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-    },
-    generateButtonDisabled: {
+    buttonDisabled: {
         opacity: 0.6,
         elevation: 1,
-    },
-    generateButtonText: {
-        color: colors.white,
-        fontSize: 16,
-        fontWeight: "700",
-        letterSpacing: 0.5,
     },
 });

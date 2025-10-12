@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
@@ -60,7 +60,6 @@ const mockPopularRecipes: Recipe[] = [
 
 export default function HomeScreen() {
     const user = useStore((s: StoreState) => s.user);
-    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
     // Get time-based greeting
     const getGreeting = () => {
@@ -71,14 +70,13 @@ export default function HomeScreen() {
     };
 
     const handleRecipePress = (recipe: Recipe) => {
-        setSelectedRecipe(recipe);
         // Navigate to recipe detail
         router.push(`/screens/Recipe/RecipeDetail?id=${recipe.id}`);
     };
 
     const handleGenerateRecipe = () => {
-        // Navigate to generate flow or trigger generation
-        router.push("/screens/Pantry/PantryInput");
+        // Navigate to generate tab
+        router.push("/favorites");
     };
 
     return (
