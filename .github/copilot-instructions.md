@@ -4,14 +4,14 @@
 
 React Native recipe app built with Expo SDK 54:
 
--   **Framework**: React Native + Expo, TypeScript strict mode, React Compiler enabled
+-   **Framework**: React Native + Expo, TypeScript strict mode, React Compiler + New Architecture enabled
 -   **Routing**: Expo Router file-based routing (`app/` directory), typed routes enabled
 -   **State**: Zustand with AsyncStorage persistence + Firebase auth integration
--   **AI/ML**: Groq API (LLaVA vision model for image analysis, Whisper for audio transcription, Llama for text processing)
+-   **AI/ML**: Groq API (LLaVA/Llama models for vision/text), Gemini API for recipe generation
 -   **Auth**: Firebase Authentication with React Native persistence + Firestore for user data
 -   **Navigation**: Stack + Tabs hybrid (root stack for auth/modals, tabs for main app)
 -   **Camera & Audio**: Expo Camera for pantry scanning, Expo AV for voice input
--   **Build**: New Architecture enabled, predictive back gesture disabled
+-   **Build**: New Architecture enabled, predictive back gesture disabled, edge-to-edge Android
 
 ## Project Structure
 
@@ -65,22 +65,30 @@ const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
 -   Model: `meta-llama/llama-4-scout-17b-16e-instruct`
 -   Input: Base64 JPEG image
 -   Output: `{ items: DetectedItem[], rawResponse: string }`
--   Extracts food items with name, category (12 predefined categories), quantity, confidence
+-   Extracts food items with name, category (13 predefined categories), quantity, confidence
 
 **Audio Transcription** (`transcribeAudioForPantryItems(audioUri)`):
 
 -   Currently uses mock transcription (TODO: Implement real Whisper API integration)
 -   Extracts pantry items from transcribed text via Llama model
 
-**AI Categorization** (`categorizePantryItem(itemName)`):
+**AI Categorization** (`categorizeIngredient(itemName)`):
 
 -   Model: `llama-3.1-8b-instant`
--   Auto-categorizes ingredient into 12 categories (vegetables, fruits, dairy & eggs, meat & poultry, seafood, grains & cereals, legumes & nuts, spices & herbs, oils & condiments, beverages, baking & desserts, frozen foods, canned goods)
+-   Auto-categorizes ingredient into 13 categories (vegetables, fruits, dairy & eggs, meat & poultry, seafood, grains & cereals, legumes & nuts, spices & herbs, oils & condiments, beverages, baking & desserts, frozen foods, canned goods)
 
 **Helper Functions**:
 
 -   `convertToPantryItems(detectedItems, userId?)`: Converts detected items to PantryItem format with AI categorization
 -   `extractItemsFromText(text)`: Fallback parser if JSON extraction fails
+
+### Gemini Recipe API (`app/api/geminiRecipeApi.ts`)
+
+Primary recipe generation system using Google's Gemini API:
+
+-   `generateRecipeWithGemini(pantryItems, options?)`: Creates recipes from pantry ingredients
+-   Structured prompt engineering for consistent recipe format
+-   Auto-saves generated recipes to `myRecipes` via store action
 
 ### Pantry Analysis Layer (`app/api/pantryAnalysis.ts`)
 
@@ -240,7 +248,7 @@ const styles = StyleSheet.create({
 
 ```bash
 npm start          # Expo dev server
-npm run android    # Android emulator
+npm run android    # Android emulator  
 npm run ios        # iOS simulator
 npm run web        # Web browser
 npm run lint       # ESLint
