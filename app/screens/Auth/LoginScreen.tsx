@@ -8,7 +8,6 @@ import { Ionicons } from "@expo/vector-icons";
 // TODO: Generate typed routes (npx expo-router generate) then remove `as any` casts across Link hrefs.
 export default function LoginScreen() {
     const login = useStore((s: StoreState) => s.login);
-    const resetPassword = useStore((s: StoreState) => s.resetPassword);
     const authLoading = useStore((s: StoreState) => s.authLoading);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -48,21 +47,12 @@ export default function LoginScreen() {
                             onChangeText={setPassword}
                         />
                         {password.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowPassword(!showPassword)}
-                            >
-                                <Ionicons
-                                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                                    size={22}
-                                    color={colors.neutral500}
-                                />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral500} />
                             </TouchableOpacity>
                         )}
                     </View>
-                    <TouchableOpacity
-                        onPress={() => router.push("/screens/Auth/ForgotPasswordScreen" as any)}
-                    >
+                    <TouchableOpacity onPress={() => router.push("/screens/Auth/ForgotPasswordScreen" as any)}>
                         <Text style={styles.forgotLink}>Forgot password?</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.primaryBtn, authLoading && { opacity: 0.7 }]} onPress={handleLogin} disabled={!!authLoading}>
@@ -76,23 +66,6 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </Link>
                     </View>
-                    <View style={styles.dividerRow}>
-                        <View style={styles.divLine} />
-                        <Text style={styles.dividerLabel}>OR</Text>
-                        <View style={styles.divLine} />
-                    </View>
-                    <TouchableOpacity style={styles.socialBtn} onPress={() => alert("TODO: Google Sign-In")}>
-                        <View style={styles.socialInner}>
-                            <Image source={require("../../../assets/images/google.png")} style={styles.socialIcon} />
-                            <Text style={styles.socialText}>Continue with Google</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBtn} onPress={() => alert("TODO: Apple Sign-In")}>
-                        <View style={styles.socialInner}>
-                            <Image source={require("../../../assets/images/apple.png")} style={styles.socialIcon} />
-                            <Text style={styles.socialText}>Continue with Apple</Text>
-                        </View>
-                    </TouchableOpacity>
                 </View>
             </View>
         </View>
