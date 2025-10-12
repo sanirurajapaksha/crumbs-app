@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    Alert,
-    Image,
-    ActivityIndicator,
-} from "react-native";
-import { useStore, StoreState, useUtilFunctions, UtilFunctions } from "../../store/useStore";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { imagePostAPI } from "@/app/api/imagePostAPI";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { imagePostAPI } from "@/app/api/imagePostAPI";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { StoreState, useStore, useUtilFunctions, UtilFunctions } from "../../store/useStore";
 
 export default function EditPost() {
     const router = useRouter();

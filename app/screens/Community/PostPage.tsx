@@ -1,26 +1,26 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    StyleSheet,
-    View,
-    Image,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    Keyboard,
-    ActivityIndicator,
-    Alert,
-} from "react-native";
+import { getAllComments, postComment } from "@/app/api/post-api";
+import { Chip } from "@/app/components/Chip";
+import { StoreState, UtilFunctions, useStore, useUtilFunctions } from "@/app/store/useStore";
 import { colors } from "@/app/theme/colors";
+import type { CommunityPost } from "@/app/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useStore, StoreState, UtilFunctions, useUtilFunctions } from "@/app/store/useStore";
-import type { CommunityPost } from "@/app/types";
-import { Chip } from "@/app/components/Chip";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import CommentSection from "./CommentSection";
-import { postComment, getAllComments } from "@/app/api/post-api";
 
 export default function PostPage() {
     const router = useRouter();
