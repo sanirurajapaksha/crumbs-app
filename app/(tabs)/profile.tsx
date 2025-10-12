@@ -29,6 +29,14 @@ export default function Profile() {
         }
     }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Reload liked posts when liked posts tab is active
+    const loadLikedPosts = useStore((s: StoreState) => s.loadLikedPosts);
+    useEffect(() => {
+        if (activeTab === "likedPosts" && user?.id) {
+            loadLikedPosts();
+        }
+    }, [activeTab, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const showImagePickerOptions = () => {
         const hasCustomAvatar = user?.avatarUrl && !user.avatarUrl.includes("shortifyme.co");
 

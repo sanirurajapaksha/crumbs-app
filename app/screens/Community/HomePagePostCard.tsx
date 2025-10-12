@@ -1,8 +1,10 @@
+import { StoreState, useStore } from "@/app/store/useStore";
 import { colors } from "@/app/theme/colors";
 import { CommunityPost } from "@/app/types";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
+import { useState } from "react";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 function timeAgo(iso?: string) {
     if (!iso) return "now";
@@ -17,6 +19,12 @@ function timeAgo(iso?: string) {
 }
 
 export default function HomePagePostCard(posts: CommunityPost) {
+    const user = useStore((s: StoreState) => s.user);
+    const likePost = useStore((s: StoreState) => s.likePost);
+    const unlikePost = useStore((s: StoreState) => s.unlikePost);
+    const likedPosts = useStore((s: StoreState) => s.likedPosts);
+    const [isLiking, setIsLiking] = useState(false);
+    
     const hero = posts?.imageURL;
     const avatarURL = posts?.authorAvatarUrl;
     const authorName = posts.authorName;
@@ -25,6 +33,38 @@ export default function HomePagePostCard(posts: CommunityPost) {
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
     const tags = posts.tags?.slice(0, 2) || [];
+    
+    // Check if user has liked this post
+    const isLiked = likedPosts.some((p) => p.id === posts.id);
+
+    const handleLikeToggle = async (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!user) {
+            Alert.alert("Login Required", "Please login to like posts");
+            return;
+        }
+
+        if (isLiking) return;
+
+        setIsLiking(true);
+        try {
+            // Fire and forget - optimistic update handles UI
+            if (isLiked) {
+                unlikePost(posts.id).catch(err => {
+                    console.error("Like sync failed:", err);
+                });
+            } else {
+                likePost(posts.id).catch(err => {
+                    console.error("Like sync failed:", err);
+                });
+            }
+        } finally {
+            // Release lock immediately for instant feedback
+            setTimeout(() => setIsLiking(false), 100);
+        }
+    };
 
     return (
         <Link href={{ pathname: "/screens/Community/PostPage", params: { id: posts.id } } as any} asChild>
@@ -47,8 +87,17 @@ export default function HomePagePostCard(posts: CommunityPost) {
                         </View>
 
                         {/* Like Button Overlay */}
-                        <TouchableOpacity style={styles.likeButton} activeOpacity={0.7}>
-                            <Ionicons name="heart-outline" size={20} color={colors.white} />
+                        <TouchableOpacity 
+                            style={styles.likeButton} 
+                            activeOpacity={0.7}
+                            onPress={handleLikeToggle}
+                            disabled={isLiking}
+                        >
+                            <Ionicons 
+                                name={isLiked ? "heart" : "heart-outline"} 
+                                size={20} 
+                                color={isLiked ? colors.danger : colors.white} 
+                            />
                         </TouchableOpacity>
                     </View>
 

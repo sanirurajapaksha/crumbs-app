@@ -28,6 +28,9 @@ export default function PostPage() {
     const posts = useStore((s: StoreState) => s.communityPosts);
     const user = useStore((s: StoreState) => s.user);
     const deletePost = useStore((s: StoreState) => s.deletePost);
+    const likePost = useStore((s: StoreState) => s.likePost);
+    const unlikePost = useStore((s: StoreState) => s.unlikePost);
+    const likedPosts = useStore((s: StoreState) => s.likedPosts);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
     const hero = post?.imageURL;
     const title = post?.name;
@@ -42,9 +45,13 @@ export default function PostPage() {
 
     const [comment, setComment] = useState("");
     const [comments, setComments] = useState<any[]>([]);
+    const [isLiking, setIsLiking] = useState(false);
 
     // Check if current user is the post author
     const isOwnPost = user?.id === post?.authorId;
+    
+    // Check if user has liked this post
+    const isLiked = likedPosts.some((p) => p.id === id);
 
     useEffect(() => {
         const loadComments = async () => {
@@ -145,6 +152,33 @@ export default function PostPage() {
         );
     };
 
+    const handleLikeToggle = async () => {
+        if (!user) {
+            Alert.alert("Login Required", "Please login to like posts");
+            return;
+        }
+
+        if (!id) return;
+        if (isLiking) return;
+
+        setIsLiking(true);
+        try {
+            // Fire and forget - optimistic update handles UI
+            if (isLiked) {
+                unlikePost(id).catch(err => {
+                    console.error("Like sync failed:", err);
+                });
+            } else {
+                likePost(id).catch(err => {
+                    console.error("Like sync failed:", err);
+                });
+            }
+        } finally {
+            // Release lock immediately for instant feedback
+            setTimeout(() => setIsLiking(false), 100);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={{ position: "relative" }}>
@@ -181,6 +215,23 @@ export default function PostPage() {
                             <Chip key={t} label={t} />
                         ))}
                     </View>
+                    
+                    {/* Like/Unlike Button */}
+                    <TouchableOpacity 
+                        style={styles.likeButton} 
+                        onPress={handleLikeToggle}
+                        disabled={isLiking}
+                    >
+                        <Ionicons 
+                            name={isLiked ? "heart" : "heart-outline"} 
+                            size={24} 
+                            color={isLiked ? colors.danger : colors.neutral600} 
+                        />
+                        <Text style={[styles.likeText, isLiked && { color: colors.danger }]}>
+                            {isLiked ? "Liked" : "Like"} ({post?.likeCount || 0})
+                        </Text>
+                    </TouchableOpacity>
+                    
                     <Text style={styles.commentsHeader}>Comments</Text>
                     <View style={styles.commentsContainer}>
                         {comments && comments.length > 0 ? (
@@ -262,6 +313,23 @@ const styles = StyleSheet.create({
     when: { fontSize: 12, color: colors.neutral600 },
     desc: { fontSize: 14, color: colors.textSecondary, marginBottom: 12 },
     tagsRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
+    likeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: colors.neutral50,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.neutral200,
+    },
+    likeText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+    },
     commentsHeader: { fontSize: 18, fontWeight: "800", marginVertical: 8, color: colors.textPrimary },
     noCommentsText: {
         textAlign: "center",
