@@ -25,6 +25,7 @@ export default function PostPage() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
+    const user = useStore((s: StoreState) => s.user);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
     const hero = post?.imageURL;
     const title = post?.name;
@@ -72,7 +73,7 @@ export default function PostPage() {
         if (!comment.trim()) return;
         setLoading(true);
         try {
-            await postComment(id, comment, author || "Unknown", avatarURLParam);
+            await postComment(id, comment, user?.name || "Unknown", avatarURLParam);
             console.log("Comment posted successfully");
             setComment("");
             // Reload comments after posting
@@ -139,7 +140,7 @@ export default function PostPage() {
 
                 <View style={styles.inputBar}>
                     <View style={styles.inputAvatar}>
-                        <Image source={{ uri: avatarURL }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                        <Image source={{ uri: user?.avatarUrl }} style={{ width: 24, height: 24, borderRadius: 12 }} />
                     </View>
                     <TextInput
                         style={styles.input}
@@ -151,7 +152,7 @@ export default function PostPage() {
                     />
                     <TouchableOpacity
                         style={styles.postBtn}
-                        onPress={() => handleCommentSubmit(post?.id || "", comment, avatarURL || "")}
+                        onPress={() => handleCommentSubmit(post?.id || "", comment, user?.avatarUrl || "")}
                         disabled={loading || !comment.trim()}
                     >
                         <Text style={styles.postBtnTxt}>{loading ? <ActivityIndicator size="small" color={colors.white} /> : "Post"}</Text>
