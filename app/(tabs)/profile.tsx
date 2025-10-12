@@ -10,7 +10,7 @@ import { StoreState, useStore } from "../store/useStore";
 const { width } = Dimensions.get("window");
 const CARD_SIZE = (width - 48) / 2; // 2 columns with padding
 
-type TabType = "myRecipes" | "mealRecipes" | "likedPosts";
+type TabType = "myRecipes" | "sharedRecipes" | "likedPosts";
 
 export default function Profile() {
     const user = useStore((s: StoreState) => s.user);
@@ -151,7 +151,7 @@ export default function Profile() {
                     image: r.heroImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
                     type: "recipe" as const,
                 }));
-            case "mealRecipes":
+            case "sharedRecipes":
                 return userCommunityPosts.map((p) => ({
                     id: p.id,
                     title: p.name.substring(0, 50),
@@ -220,10 +220,10 @@ export default function Profile() {
                         <Text style={[styles.tabText, activeTab === "myRecipes" && styles.activeTabText]}>My Recipes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.tab, activeTab === "mealRecipes" && styles.activeTab]}
-                        onPress={() => setActiveTab("mealRecipes")}
+                        style={[styles.tab, activeTab === "sharedRecipes" && styles.activeTab]}
+                        onPress={() => setActiveTab("sharedRecipes")}
                     >
-                        <Text style={[styles.tabText, activeTab === "mealRecipes" && styles.activeTabText]}>Meal Recipes</Text>
+                        <Text style={[styles.tabText, activeTab === "sharedRecipes" && styles.activeTabText]}>Shared Recipes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.tab, activeTab === "likedPosts" && styles.activeTab]} onPress={() => setActiveTab("likedPosts")}>
                         <Text style={[styles.tabText, activeTab === "likedPosts" && styles.activeTabText]}>Liked Posts</Text>

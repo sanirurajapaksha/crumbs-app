@@ -85,20 +85,6 @@ export default function HomePagePostCard(posts: CommunityPost) {
                                 <Text style={styles.floatingTime}>{time}</Text>
                             </View>
                         </View>
-
-                        {/* Like Button Overlay */}
-                        <TouchableOpacity 
-                            style={styles.likeButton} 
-                            activeOpacity={0.7}
-                            onPress={handleLikeToggle}
-                            disabled={isLiking}
-                        >
-                            <Ionicons 
-                                name={isLiked ? "heart" : "heart-outline"} 
-                                size={20} 
-                                color={isLiked ? colors.danger : colors.white} 
-                            />
-                        </TouchableOpacity>
                     </View>
 
                     {/* Card Content */}
@@ -224,18 +210,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.neutral600,
         lineHeight: 12,
-    },
-    likeButton: {
-        position: "absolute",
-        top: 16,
-        right: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: "rgba(0,0,0,0.3)",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
     },
     cardContent: {
         padding: 16,
