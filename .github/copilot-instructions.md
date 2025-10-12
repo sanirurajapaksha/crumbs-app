@@ -44,21 +44,42 @@ const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
 
 ### Persisted State
 
-`user`, `pantryItems`, `favorites`, `myRecipes`, `likedPosts`, `hasOnboarded`, `notifications` (via AsyncStorage)
+`user`, `favorites`, `myRecipes`, `likedPosts`, `hasOnboarded`, `notifications` (via AsyncStorage)
+
+**NOTE**: `pantryItems` is **NOT persisted** - managed entirely through Firebase real-time subscriptions. The store subscribes to Firestore on login via `subscribeToPantryItems()` in `setUser()`.
+
+### Persistence Configuration
+
+```typescript
+persist(storeCreator, {
+    name: "crumbs-store",
+    version: 2, // Increment when schema changes
+    partialize: (state) => ({
+        // Explicitly whitelist what to persist
+        favorites: state.favorites,
+        myRecipes: state.myRecipes,
+        // pantryItems excluded - Firebase manages this
+    }),
+});
+```
 
 ### Key Actions
 
--   **Auth**: `login()`, `signup()`, `signOut()`, `deleteAccount()`, `resetPassword()`, `startAuthListener()` (called in root layout)
--   **Pantry**: `addPantryItem()`, `addBatchPantryItems()`, `updatePantryItem()`, `removePantryItem()`, `clearPantry()`
--   **Recipes**: `saveFavorite()`, `removeFavorite()`, `saveMyRecipe()`, `removeMyRecipe()`, `generateRecipeMock()`
+-   **Auth**: `login()`, `signup()`, `signOut()`, `deleteAccount()`, `resetPassword()`, `startAuthListener()` (called in root layout), `updateUserProfile()`
+-   **Pantry**: `loadPantryItems()`, `addPantryItem()`, `addBatchPantryItems()`, `addBatchPantryItemsWithDuplicateCheck()`, `updatePantryItem()`, `removePantryItem()`, `clearPantry()`, `mergePantryItems()`
+-   **Recipes**: `saveFavorite()`, `removeFavorite()`, `saveMyRecipe()`, `removeMyRecipe()`, `generateRecipeMock()`, `generateRecipeWithAI()`
 -   **Community**: `loadPosts()`, `postCommunity()`, `likePost()`, `unlikePost()`
 -   **Notifications**: `addNotification()`, `markNotificationAsRead()`, `markAllNotificationsAsRead()`, `clearAllNotifications()`
 
 ## AI Integration Architecture
 
-### Groq API (`app/api/groqApi.ts`)
+### Environment Variables
 
-**Environment Variable Required**: `EXPO_PUBLIC_GROQ_API_KEY`
+-   **Groq API**: `EXPO_PUBLIC_GROQ_API_KEY` (vision, audio transcription, text generation)
+-   **Google Gemini**: `EXPO_PUBLIC_GOOGLE_API_KEY` (recipe generation, duplicate detection)
+-   **ImgBB**: API key hardcoded in `imagePostAPI.ts` (image hosting for community posts)
+
+### Groq API (`app/api/groqApi.ts`)
 
 **Vision Analysis** (`analyzeImageForPantryItems(base64Image)`):
 
@@ -69,8 +90,9 @@ const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
 
 **Audio Transcription** (`transcribeAudioForPantryItems(audioUri)`):
 
--   Currently uses mock transcription (TODO: Implement real Whisper API integration)
+-   Uses Groq Whisper API (`whisper-large-v3` model)
 -   Extracts pantry items from transcribed text via Llama model
+-   Integrated in `speechUtils.ts` and hands-free cooking modes
 
 **AI Categorization** (`categorizeIngredient(itemName)`):
 
@@ -82,13 +104,22 @@ const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
 -   `convertToPantryItems(detectedItems, userId?)`: Converts detected items to PantryItem format with AI categorization
 -   `extractItemsFromText(text)`: Fallback parser if JSON extraction fails
 
-### Gemini Recipe API (`app/api/geminiRecipeApi.ts`)
+### Gemini API Integration
 
-Primary recipe generation system using Google's Gemini API:
+**Recipe Generation** (`app/api/geminiRecipeApi.ts`):
 
+-   Model: `gemini-2.0-flash-exp`
 -   `generateRecipeWithGemini(pantryItems, options?)`: Creates recipes from pantry ingredients
--   Structured prompt engineering for consistent recipe format
+-   Structured prompt engineering for consistent recipe format with macros, steps, pro tips
 -   Auto-saves generated recipes to `myRecipes` via store action
+
+**Duplicate Detection** (`app/api/duplicateDetectionApi.ts`):
+
+-   **Critical Feature**: AI-powered duplicate pantry item detection before adding items
+-   `checkForDuplicates(existingItems, newItems)`: Returns `DuplicateCheckResult` with matches and merge suggestions
+-   Detects singular/plural, quantity variations, packaging descriptions (e.g., "milk" vs "1 bottle of milk")
+-   Returns `DuplicateMatch` with confidence (0-1), suggested action (`merge`/`replace`/`separate`), and merged item
+-   UI flow: `addBatchPantryItemsWithDuplicateCheck()` → `DuplicateResolutionModal` → user confirms/edits → `mergePantryItems()`
 
 ### Pantry Analysis Layer (`app/api/pantryAnalysis.ts`)
 
@@ -99,7 +130,7 @@ High-level orchestration functions:
 
 Returns `AnalysisResult` with `success`, `items`, `detectedItems`, `rawResponse`, `error?`
 
-## Voice Input System
+## Voice Input & Hands-Free Cooking
 
 ### Speech Recognition (`app/utils/speechUtils.ts`)
 
@@ -112,7 +143,7 @@ Returns `AnalysisResult` with `success`, `items`, `detectedItems`, `rawResponse`
 
 -   Sample rate: 16000 Hz
 -   Format: M4A (mobile), WebM (web)
--   Bit rate: 128000
+-   Bit rate: 128000 (voice input), 64000 (wake word detection)
 
 **Key Functions**:
 
@@ -144,6 +175,30 @@ Full-featured voice input modal with:
     maxDuration={15}
 />
 ```
+
+### Hands-Free Cooking Mode
+
+**Voice Command System** (`app/api/voiceCommandApi.ts`, `app/api/handsFreeCookingApi.ts`):
+
+-   **Commands**: "next", "previous", "repeat" (with aliases: "continue", "forward", "back", "last")
+-   `recordAndTranscribeVoiceCommand()`: Records audio → Groq Whisper → parses command → returns `VoiceCommandResult`
+-   **Global recording lock**: Prevents concurrent recordings via `globalRecording` and `isRecording` flag
+-   **Cleanup pattern**: Always cleanup existing recordings before starting new ones
+
+**Wake Word Detection** (`app/api/wakeWordDetection.ts`):
+
+-   **Two-stage approach** to minimize API costs:
+    1. Local audio monitoring (FREE) - detects wake words in 2s chunks
+    2. Groq API transcription (PAID) - only activates after wake word detected
+-   **Wake words**: "hey crumbs", "ok crumbs", "hey app" (case-insensitive)
+-   `WakeWordDetector` class: Continuous listener with `start()`, `stop()`, `pause()`, `resume()` methods
+-   Two recording configs: Lower quality (64kbps) for wake word, higher quality (128kbps) for commands
+
+**CookingModeModal Component**:
+
+-   User chooses between "Hands-Free" (voice + TTS) or "Manual" (tap) mode
+-   Integrated in recipe step navigation (`StepDetail.tsx`)
+-   Auto-reads step instructions via Text-to-Speech (Expo Speech)
 
 ## Error Handling
 
@@ -189,6 +244,24 @@ class AIProcessingError extends Error {
 -   `deleteAccount(password)`: Reauthenticate + delete user + Firestore cleanup
 -   `subscribeToAuth(onAuthChanged)`: Real-time auth state listener (called via `startAuthListener()` in store)
 -   `updateUserProfileInFirestore(userId, updates)`: Merge updates into Firestore user doc
+
+### Pantry Items with Real-Time Sync (`app/api/pantryFirebaseApi.ts`)
+
+**Critical Pattern**: Pantry items use Firestore real-time subscriptions, NOT AsyncStorage persistence.
+
+-   **Collection path**: `users/{userId}/pantryItems/{itemId}`
+-   `loadUserPantryItems(userId)`: One-time fetch with `orderBy('addedAt', 'desc')`
+-   `subscribeToPantryItems(userId, onUpdate)`: Real-time listener using `onSnapshot()`, returns `Unsubscribe` function
+-   `addPantryItemToFirebase(userId, item)`: Auto-adds `addedAt` timestamp
+-   `updatePantryItemInFirebase(userId, itemId, updates)`: Auto-adds `updatedAt` timestamp
+-   `deletePantryItemFromFirebase(userId, itemId)`: Deletes doc
+-   `clearUserPantryItems(userId)`: Batch delete all pantry items
+
+**Store Integration**:
+
+-   `setUser(u)` → subscribes to Firestore → updates `pantryItems` in store
+-   `clearUser()` → unsubscribes from Firestore → clears `pantryItems`
+-   Subscription stored in `pantrySubscription` state property
 
 ### Community Posts (`app/api/post-api.ts`)
 
@@ -248,7 +321,7 @@ const styles = StyleSheet.create({
 
 ```bash
 npm start          # Expo dev server
-npm run android    # Android emulator  
+npm run android    # Android emulator
 npm run ios        # iOS simulator
 npm run web        # Web browser
 npm run lint       # ESLint
@@ -258,7 +331,17 @@ npm run lint       # ESLint
 
 1. Create `.env` file (not tracked in git)
 2. Add `EXPO_PUBLIC_GROQ_API_KEY=<your-key>`
-3. Add Firebase config vars (`EXPO_PUBLIC_apiKey`, etc.)
+3. Add `EXPO_PUBLIC_GOOGLE_API_KEY=<your-key>` (for Gemini API)
+4. Add Firebase config vars (`EXPO_PUBLIC_apiKey`, etc.)
+
+### Demo Data Seeding
+
+**Auto-seeding on first app mount** (`app/hooks/useAsyncSeed.ts`):
+
+-   Called in root `_layout.tsx` via `useAsyncSeed()` hook
+-   Seeds community posts only (pantry items managed by Firebase)
+-   Uses `seedMockData()` from `mockApi.ts`
+-   One-time execution tracked via `useRef` to prevent re-runs
 
 ### Testing AI Features
 
@@ -274,10 +357,10 @@ npm run lint       # ESLint
 
 ## Critical TODOs
 
-1. **Recipe Generation**: Replace `generateRecipeMock()` in `mockApi.ts` with Groq vision + Llama-based recipe generation
-2. **Audio Transcription**: Implement real Whisper API in `transcribeAudioForPantryItems()` (currently mock)
-3. **Community Backend**: Replace in-memory `communityPosts` with Firestore queries (`getCommunityPosts()`)
-4. **Type Safety**: Consider splitting `types.ts` into domain-specific files if it exceeds 150 lines
+1. **Recipe Generation**: Replace `generateRecipeMock()` in `mockApi.ts` with real AI (Gemini already implemented via `generateRecipeWithAI()`)
+2. **Community Backend**: Replace in-memory `communityPosts` with Firestore queries (`getCommunityPosts()`)
+3. **Type Safety**: Consider splitting `types.ts` into domain-specific files if it exceeds 150 lines
+4. **Social Auth**: Implement Google/Apple sign-in (currently shows alerts in `LoginScreen.tsx`)
 
 ## Integration Patterns
 
