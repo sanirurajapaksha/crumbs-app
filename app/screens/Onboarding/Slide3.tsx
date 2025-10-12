@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { colors } from "../../theme/colors";
 import { useRouter } from "expo-router";
 import { useStore, StoreState } from "../../store/useStore";
@@ -9,7 +9,13 @@ export default function Slide3() {
     const setHasOnboarded = useStore((s: StoreState) => s.setHasOnboarded);
     return (
         <View style={styles.wrapper}>
-            <View style={styles.illustration}>{/* Placeholder block for future image/illustration */}</View>
+            <View style={styles.illustration}>
+                <Image 
+                    source={require("../../../assets/images/onboarding-3.png")} 
+                    style={styles.image}
+                    resizeMode="contain"
+                />
+            </View>
             <View style={styles.card}>
                 <Text style={styles.heading}>Join a Community of Cooks</Text>
                 <Text style={styles.subtitle}>Share your creations and discover new twists from other home chefs.</Text>
@@ -40,6 +46,10 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral300, // soft green-ish placeholder
         justifyContent: "center",
         alignItems: "center",
+    },
+    image: {
+        width: "100%",
+        height: "100%",
     },
     card: {
         flex: 0.45,
