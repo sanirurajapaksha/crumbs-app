@@ -14,7 +14,6 @@ type TabType = "myRecipes" | "sharedRecipes" | "likedPosts";
 
 export default function Profile() {
     const user = useStore((s: StoreState) => s.user);
-    const favorites = useStore((s: StoreState) => s.favorites);
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
     const userCommunityPosts = useStore((s: StoreState) => s.userCommunityPosts);
