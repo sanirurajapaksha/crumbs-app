@@ -1,24 +1,33 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Alert } from "react-native";
-import { useStore, StoreState } from "../store/useStore";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { imagePostAPI } from "../api/imagePostAPI";
+import { StoreState, useStore } from "../store/useStore";
 
 const { width } = Dimensions.get("window");
 const CARD_SIZE = (width - 48) / 2; // 2 columns with padding
 
-type TabType = "myRecipes" | "savedRecipes" | "likedPosts";
+type TabType = "myRecipes" | "mealRecipes" | "likedPosts";
 
 export default function Profile() {
     const user = useStore((s: StoreState) => s.user);
     const favorites = useStore((s: StoreState) => s.favorites);
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
+    const userCommunityPosts = useStore((s: StoreState) => s.userCommunityPosts);
+    const loadUserPosts = useStore((s: StoreState) => s.loadUserPosts);
     const updateUserProfile = useStore((s: StoreState) => s.updateUserProfile);
     const [activeTab, setActiveTab] = useState<TabType>("myRecipes");
+
+    // Load user's community posts when component mounts or user changes
+    useEffect(() => {
+        if (user?.id) {
+            loadUserPosts(user.id);
+        }
+    }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const showImagePickerOptions = () => {
         const hasCustomAvatar = user?.avatarUrl && !user.avatarUrl.includes("shortifyme.co");
@@ -132,18 +141,21 @@ export default function Profile() {
                     id: r.id,
                     title: r.title,
                     image: r.heroImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+                    type: "recipe" as const,
                 }));
-            case "savedRecipes":
-                return favorites.map((r) => ({
-                    id: r.id,
-                    title: r.title,
-                    image: r.heroImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+            case "mealRecipes":
+                return userCommunityPosts.map((p) => ({
+                    id: p.id,
+                    title: p.name.substring(0, 50),
+                    image: p.imageURL || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+                    type: "post" as const,
                 }));
             case "likedPosts":
                 return likedPosts.map((p) => ({
                     id: p.id,
                     title: p.name.substring(0, 50),
                     image: p.imageURL || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+                    type: "post" as const,
                 }));
             default:
                 return [];
@@ -151,6 +163,14 @@ export default function Profile() {
     };
 
     const displayData = getDisplayData();
+
+    const handleItemPress = (item: { id: string; title: string; image: string; type: "recipe" | "post" }) => {
+        if (item.type === "post") {
+            router.push(`/screens/Community/PostPage?id=${item.id}` as any);
+        } else if (item.type === "recipe") {
+            router.push(`/screens/Recipe/RecipeDetail?id=${item.id}` as any);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -192,10 +212,10 @@ export default function Profile() {
                         <Text style={[styles.tabText, activeTab === "myRecipes" && styles.activeTabText]}>My Recipes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.tab, activeTab === "savedRecipes" && styles.activeTab]}
-                        onPress={() => setActiveTab("savedRecipes")}
+                        style={[styles.tab, activeTab === "mealRecipes" && styles.activeTab]}
+                        onPress={() => setActiveTab("mealRecipes")}
                     >
-                        <Text style={[styles.tabText, activeTab === "savedRecipes" && styles.activeTabText]}>Saved Recipes</Text>
+                        <Text style={[styles.tabText, activeTab === "mealRecipes" && styles.activeTabText]}>Meal Recipes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.tab, activeTab === "likedPosts" && styles.activeTab]} onPress={() => setActiveTab("likedPosts")}>
                         <Text style={[styles.tabText, activeTab === "likedPosts" && styles.activeTabText]}>Liked Posts</Text>
@@ -205,7 +225,7 @@ export default function Profile() {
                 {/* Recipe Grid */}
                 <View style={styles.gridContainer}>
                     {displayData.map((item) => (
-                        <TouchableOpacity key={item.id} style={styles.recipeCard}>
+                        <TouchableOpacity key={item.id} style={styles.recipeCard} onPress={() => handleItemPress(item)}>
                             <Image source={{ uri: item.image }} style={styles.recipeImage} />
                             <Text style={styles.recipeTitle} numberOfLines={2}>
                                 {item.title}

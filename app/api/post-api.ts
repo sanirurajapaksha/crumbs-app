@@ -69,6 +69,26 @@ export async function getCommunityPosts(): Promise<CommunityPost[]> {
     return posts;
 }
 
+export async function getUserCommunityPosts(uid: string): Promise<CommunityPost[]> {
+    const posts: CommunityPost[] = [];
+    try {
+        const snapshot = await getDocs(collection(db, "users", uid, "communityPosts"));
+        snapshot.forEach((doc) => {
+            const post = { ...doc.data() } as CommunityPost;
+            posts.push(post);
+        });
+        // Sort by creation date (newest first)
+        posts.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+    } catch (error) {
+        console.error("Error fetching user community posts:", error);
+    }
+    return posts;
+}
+
 export async function postComment(postId: string, comment: string, authorName: string, avatarUrl: string) {
     const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     try {

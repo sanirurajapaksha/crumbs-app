@@ -11,6 +11,7 @@ import {
     ScrollView,
     Keyboard,
     ActivityIndicator,
+    Alert,
 } from "react-native";
 import { colors } from "@/app/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ export default function PostPage() {
     const { id } = useLocalSearchParams<{ id?: string }>();
     const posts = useStore((s: StoreState) => s.communityPosts);
     const user = useStore((s: StoreState) => s.user);
+    const deletePost = useStore((s: StoreState) => s.deletePost);
     const post: CommunityPost | undefined = useMemo(() => posts.find((p) => p.id === id), [id, posts]);
     const hero = post?.imageURL;
     const title = post?.name;
@@ -40,6 +42,9 @@ export default function PostPage() {
 
     const [comment, setComment] = useState("");
     const [comments, setComments] = useState<any[]>([]);
+
+    // Check if current user is the post author
+    const isOwnPost = user?.id === post?.authorId;
 
     useEffect(() => {
         const loadComments = async () => {
@@ -95,12 +100,62 @@ export default function PostPage() {
         }
     };
 
+    const handleEditPost = () => {
+        router.push(`/screens/Community/EditPost?id=${id}` as any);
+    };
+
+    const handleDeletePost = () => {
+        Alert.alert(
+            "Delete Post",
+            "Are you sure you want to delete this post? This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        if (!user?.id || !id) return;
+                        setLoading(true);
+                        try {
+                            await deletePost(user.id, id);
+                            Alert.alert("Success", "Post deleted successfully", [
+                                { text: "OK", onPress: () => router.back() }
+                            ]);
+                        } catch (error) {
+                            console.error("Failed to delete post:", error);
+                            Alert.alert("Error", "Failed to delete post. Please try again.");
+                        } finally {
+                            setLoading(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const showPostOptions = () => {
+        Alert.alert(
+            "Post Options",
+            "What would you like to do?",
+            [
+                { text: "Edit Post", onPress: handleEditPost },
+                { text: "Delete Post", onPress: handleDeletePost, style: "destructive" },
+                { text: "Cancel", style: "cancel" },
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <View style={{ position: "relative" }}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
+                {isOwnPost && (
+                    <TouchableOpacity onPress={showPostOptions} style={styles.optionsBtn}>
+                        <Ionicons name="ellipsis-horizontal" size={22} color={colors.textPrimary} />
+                    </TouchableOpacity>
+                )}
                 <Image source={{ uri: hero }} style={styles.hero} />
             </View>
 
@@ -190,6 +245,7 @@ const styles = StyleSheet.create({
     scrollContent: { paddingBottom: 20 },
     commentsContainer: { paddingBottom: 100 },
     backBtn: { position: "absolute", left: 8, top: 60, backgroundColor: colors.white, borderRadius: 16, padding: 6, zIndex: 10 },
+    optionsBtn: { position: "absolute", right: 8, top: 60, backgroundColor: colors.white, borderRadius: 16, padding: 6, zIndex: 10 },
     title: { fontSize: 24, fontWeight: "800", marginBottom: 8, color: colors.textPrimary },
     authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
     avatar: {

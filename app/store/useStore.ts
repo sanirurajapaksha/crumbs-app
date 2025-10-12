@@ -22,7 +22,7 @@ import {
     subscribeToPantryItems,
     updatePantryItemInFirebase
 } from "../api/pantryFirebaseApi";
-import { deleteCommunityPost, getCommunityPosts, postCommunityPost, updateCommunityPost } from "../api/post-api";
+import { deleteCommunityPost, getCommunityPosts, getUserCommunityPosts, postCommunityPost, updateCommunityPost } from "../api/post-api";
 import { CommunityPost, Notification, PantryItem, Recipe, User } from "../types";
 
 export interface StoreState {
@@ -33,6 +33,7 @@ export interface StoreState {
     myRecipes: Recipe[];
     likedPosts: CommunityPost[];
     communityPosts: CommunityPost[];
+    userCommunityPosts: CommunityPost[];
     notifications: Notification[];
     hasOnboarded?: boolean;
     // Firebase subscriptions
@@ -62,6 +63,7 @@ export interface StoreState {
     likePost: (post: CommunityPost) => void;
     unlikePost: (id: string) => void;
     loadPosts: () => Promise<void>;
+    loadUserPosts: (uid: string) => Promise<void>;
     postCommunity: (uid: string, post: CommunityPost) => void;
     updatePost: (uid: string, postId: string, updates: Partial<CommunityPost>) => Promise<void>;
     deletePost: (uid: string, postId: string) => Promise<void>;
@@ -109,6 +111,7 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     myRecipes: [],
     likedPosts: [],
     communityPosts: [],
+    userCommunityPosts: [],
     notifications: [],
     hasOnboarded: false,
     authLoading: false,
@@ -372,9 +375,16 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         const posts = await getCommunityPosts();
         set({ communityPosts: posts });
     },
+    loadUserPosts: async (uid: string) => {
+        const posts = await getUserCommunityPosts(uid);
+        set({ userCommunityPosts: posts });
+    },
     postCommunity: async (uid: string, post: CommunityPost) => {
         const saved = await postCommunityPost(uid, post);
-        set({ communityPosts: [saved, ...get().communityPosts] });
+        set({ 
+            communityPosts: [saved, ...get().communityPosts],
+            userCommunityPosts: [saved, ...get().userCommunityPosts]
+        });
         return saved;
     },
     updatePost: async (uid: string, postId: string, updates: Partial<CommunityPost>) => {
@@ -396,7 +406,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             await deleteCommunityPost(uid, postId);
             // Update local state
             set({ 
-                communityPosts: get().communityPosts.filter(post => post.id !== postId)
+                communityPosts: get().communityPosts.filter(post => post.id !== postId),
+                userCommunityPosts: get().userCommunityPosts.filter(post => post.id !== postId)
             });
         } catch (error) {
             console.error('Error deleting post:', error);
