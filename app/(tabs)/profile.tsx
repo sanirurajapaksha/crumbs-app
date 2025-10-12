@@ -14,7 +14,6 @@ type TabType = "myRecipes" | "mealRecipes" | "likedPosts";
 
 export default function Profile() {
     const user = useStore((s: StoreState) => s.user);
-    const favorites = useStore((s: StoreState) => s.favorites);
     const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
     const userCommunityPosts = useStore((s: StoreState) => s.userCommunityPosts);
@@ -223,7 +222,7 @@ export default function Profile() {
                         style={[styles.tab, activeTab === "mealRecipes" && styles.activeTab]}
                         onPress={() => setActiveTab("mealRecipes")}
                     >
-                        <Text style={[styles.tabText, activeTab === "mealRecipes" && styles.activeTabText]}>Meal Recipes</Text>
+                        <Text style={[styles.tabText, activeTab === "mealRecipes" && styles.activeTabText]}>My Posts</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.tab, activeTab === "likedPosts" && styles.activeTab]} onPress={() => setActiveTab("likedPosts")}>
                         <Text style={[styles.tabText, activeTab === "likedPosts" && styles.activeTabText]}>Liked Posts</Text>
