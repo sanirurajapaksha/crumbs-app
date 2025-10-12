@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
         width: 300,
         height: 150,
     },
-    welcome: { fontSize: 20, fontWeight: "600", textAlign: "center", marginBottom: 24 },
+    welcome: { fontSize: 28, fontWeight: "600", textAlign: "center", marginBottom: 24 },
     input: {
         backgroundColor: colors.neutral50,
         paddingHorizontal: 18,
