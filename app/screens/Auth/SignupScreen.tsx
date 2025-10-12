@@ -28,6 +28,13 @@ export default function SignupScreen() {
         <View style={styles.screen}>
             <View style={styles.contentWrapper}>
                 <View style={styles.content}>
+                    <View style={styles.logoContainer}>
+                        <Image 
+                            source={require("../../../assets/images/crumbs-logo-tagline.png")} 
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                    </View>
                     <Text style={styles.heading}>Join Crumbs!</Text>
                     <TextInput
                         style={styles.input}
@@ -108,7 +115,21 @@ const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.white },
     contentWrapper: { flex: 1, justifyContent: "center" },
     content: { paddingHorizontal: 24, paddingBottom: 48 },
-    heading: { fontSize: 35, fontWeight: "700", textAlign: "center", marginBottom: 24, color: colors.textPrimary },
+    logoContainer: {
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    logo: {
+        width: 280,
+        height: 130,
+    },
+    heading: {
+        fontSize: 28,
+        fontWeight: "700",
+        textAlign: "center",
+        marginBottom: 24,
+        color: colors.textPrimary,
+    },
     input: {
         backgroundColor: colors.neutral50,
         paddingHorizontal: 18,

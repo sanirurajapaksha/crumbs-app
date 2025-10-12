@@ -33,7 +33,7 @@ export default function LoginScreen() {
                             resizeMode="contain"
                         />
                     </View>
-                    <Text style={styles.welcome}>Welcome Back!</Text>
+                    <Text style={styles.welcome}>Welcome !</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="Email"
