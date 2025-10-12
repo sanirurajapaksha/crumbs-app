@@ -1,5 +1,5 @@
+import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
 import { CommunityPost } from "../types";
 
 export async function postCommunityPost(uid: string, post: CommunityPost) {
@@ -9,6 +9,40 @@ export async function postCommunityPost(uid: string, post: CommunityPost) {
         return post;
     } catch (error) {
         console.error("Error posting community post:", error);
+    }
+}
+
+export async function updateCommunityPost(uid: string, postId: string, updates: Partial<CommunityPost>) {
+    try {
+        // Update in user's personal posts
+        const userRef = doc(db, "users", uid, "communityPosts", postId);
+        await updateDoc(userRef, updates);
+        
+        // Update in public wall
+        const wallRef = doc(db, "postWall", postId);
+        await updateDoc(wallRef, updates);
+        
+        return true;
+    } catch (error) {
+        console.error("Error updating community post:", error);
+        throw error;
+    }
+}
+
+export async function deleteCommunityPost(uid: string, postId: string) {
+    try {
+        // Delete from user's personal posts
+        const userRef = doc(db, "users", uid, "communityPosts", postId);
+        await deleteDoc(userRef);
+        
+        // Delete from public wall
+        const wallRef = doc(db, "postWall", postId);
+        await deleteDoc(wallRef);
+        
+        return true;
+    } catch (error) {
+        console.error("Error deleting community post:", error);
+        throw error;
     }
 }
 
@@ -31,6 +65,26 @@ export async function getCommunityPosts(): Promise<CommunityPost[]> {
         });
     } catch (error) {
         console.error("Error fetching community posts:", error);
+    }
+    return posts;
+}
+
+export async function getUserCommunityPosts(uid: string): Promise<CommunityPost[]> {
+    const posts: CommunityPost[] = [];
+    try {
+        const snapshot = await getDocs(collection(db, "users", uid, "communityPosts"));
+        snapshot.forEach((doc) => {
+            const post = { ...doc.data() } as CommunityPost;
+            posts.push(post);
+        });
+        // Sort by creation date (newest first)
+        posts.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+    } catch (error) {
+        console.error("Error fetching user community posts:", error);
     }
     return posts;
 }
@@ -79,4 +133,101 @@ export async function getAllComments(postId: string) {
         throw error; // Re-throw to handle in UI
     }
     return comments;
+}
+
+/**
+ * Like a post - adds user to likes subcollection and updates like count
+ */
+export async function likePost(userId: string, postId: string) {
+    try {
+        // Add user to post's likes subcollection
+        const likeRef = doc(db, "postWall", postId, "likes", userId);
+        await setDoc(likeRef, {
+            userId,
+            likedAt: new Date().toISOString(),
+        });
+
+        // Get current like count
+        const postRef = doc(db, "postWall", postId);
+        const likesSnapshot = await getDocs(collection(db, "postWall", postId, "likes"));
+        const likeCount = likesSnapshot.size;
+
+        // Update post like count
+        await updateDoc(postRef, { likeCount });
+
+        return true;
+    } catch (error) {
+        console.error("Error liking post:", error);
+        throw error;
+    }
+}
+
+/**
+ * Unlike a post - removes user from likes subcollection and updates like count
+ */
+export async function unlikePost(userId: string, postId: string) {
+    try {
+        // Remove user from post's likes subcollection
+        const likeRef = doc(db, "postWall", postId, "likes", userId);
+        await deleteDoc(likeRef);
+
+        // Get current like count
+        const postRef = doc(db, "postWall", postId);
+        const likesSnapshot = await getDocs(collection(db, "postWall", postId, "likes"));
+        const likeCount = likesSnapshot.size;
+
+        // Update post like count
+        await updateDoc(postRef, { likeCount });
+
+        return true;
+    } catch (error) {
+        console.error("Error unliking post:", error);
+        throw error;
+    }
+}
+
+/**
+ * Check if user has liked a post
+ */
+export async function hasUserLikedPost(userId: string, postId: string): Promise<boolean> {
+    try {
+        const likeRef = doc(db, "postWall", postId, "likes", userId);
+        const likeDoc = await getDocs(collection(db, "postWall", postId, "likes"));
+        return likeDoc.docs.some(doc => doc.id === userId);
+    } catch (error) {
+        console.error("Error checking if user liked post:", error);
+        return false;
+    }
+}
+
+/**
+ * Get all posts liked by a user
+ */
+export async function getUserLikedPosts(userId: string): Promise<CommunityPost[]> {
+    const likedPosts: CommunityPost[] = [];
+    try {
+        // Get all posts from postWall
+        const postsSnapshot = await getDocs(collection(db, "postWall"));
+        
+        // Check each post to see if user has liked it
+        for (const postDoc of postsSnapshot.docs) {
+            const likeRef = doc(db, "postWall", postDoc.id, "likes", userId);
+            const likesSnapshot = await getDocs(collection(db, "postWall", postDoc.id, "likes"));
+            const hasLiked = likesSnapshot.docs.some(doc => doc.id === userId);
+            
+            if (hasLiked) {
+                likedPosts.push({ ...postDoc.data() } as CommunityPost);
+            }
+        }
+
+        // Sort by creation date (newest first)
+        likedPosts.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+    } catch (error) {
+        console.error("Error fetching user liked posts:", error);
+    }
+    return likedPosts;
 }

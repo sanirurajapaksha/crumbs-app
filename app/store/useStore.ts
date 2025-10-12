@@ -22,7 +22,7 @@ import {
     subscribeToPantryItems,
     updatePantryItemInFirebase
 } from "../api/pantryFirebaseApi";
-import { getCommunityPosts, postCommunityPost } from "../api/post-api";
+import { deleteCommunityPost, likePost as fbLikePost, unlikePost as fbUnlikePost, getCommunityPosts, getUserCommunityPosts, getUserLikedPosts, postCommunityPost, updateCommunityPost } from "../api/post-api";
 import { CommunityPost, Notification, PantryItem, Recipe, User } from "../types";
 
 export interface StoreState {
@@ -33,6 +33,7 @@ export interface StoreState {
     myRecipes: Recipe[];
     likedPosts: CommunityPost[];
     communityPosts: CommunityPost[];
+    userCommunityPosts: CommunityPost[];
     notifications: Notification[];
     hasOnboarded?: boolean;
     // Firebase subscriptions
@@ -59,10 +60,14 @@ export interface StoreState {
     removeFavorite: (id: string) => void;
     saveMyRecipe: (recipe: Recipe) => void;
     removeMyRecipe: (id: string) => void;
-    likePost: (post: CommunityPost) => void;
-    unlikePost: (id: string) => void;
+    likePost: (postId: string) => Promise<void>;
+    unlikePost: (postId: string) => Promise<void>;
+    loadLikedPosts: () => Promise<void>;
     loadPosts: () => Promise<void>;
+    loadUserPosts: (uid: string) => Promise<void>;
     postCommunity: (uid: string, post: CommunityPost) => void;
+    updatePost: (uid: string, postId: string, updates: Partial<CommunityPost>) => Promise<void>;
+    deletePost: (uid: string, postId: string) => Promise<void>;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     generateRecipeWithAI: (
         pantry: PantryItem[],
@@ -107,6 +112,7 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     myRecipes: [],
     likedPosts: [],
     communityPosts: [],
+    userCommunityPosts: [],
     notifications: [],
     hasOnboarded: false,
     authLoading: false,
@@ -119,6 +125,8 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
                 set({ pantryItems: items });
             });
             set({ pantrySubscription: unsubscribe });
+            // Load user's liked posts
+            get().loadLikedPosts();
         }
     },
     clearUser: () => {
@@ -361,19 +369,136 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         if (!exists) set({ myRecipes: [...get().myRecipes, recipe] });
     },
     removeMyRecipe: (id: string) => set({ myRecipes: get().myRecipes.filter((r: Recipe) => r.id !== id) }),
-    likePost: (post: CommunityPost) => {
-        const exists = get().likedPosts.some((p: CommunityPost) => p.id === post.id);
-        if (!exists) set({ likedPosts: [...get().likedPosts, post] });
+    likePost: async (postId: string) => {
+        const { user, communityPosts } = get();
+        if (!user) return;
+        
+        // OPTIMISTIC UPDATE: Update UI immediately
+        const targetPost = communityPosts.find(p => p.id === postId);
+        if (targetPost) {
+            // Add to liked posts immediately
+            const exists = get().likedPosts.some((p: CommunityPost) => p.id === postId);
+            if (!exists) {
+                set({ likedPosts: [...get().likedPosts, targetPost] });
+            }
+            
+            // Increment like count immediately
+            const updatedPosts = communityPosts.map((post) =>
+                post.id === postId
+                    ? { ...post, likeCount: (post.likeCount || 0) + 1 }
+                    : post
+            );
+            set({ communityPosts: updatedPosts });
+        }
+        
+        // Sync with Firebase in background
+        try {
+            await fbLikePost(user.id, postId);
+        } catch (error) {
+            console.error("Error liking post:", error);
+            // ROLLBACK on error: revert optimistic update
+            const revertedPosts = communityPosts.map((post) =>
+                post.id === postId
+                    ? { ...post, likeCount: Math.max((post.likeCount || 0), 0) }
+                    : post
+            );
+            set({ 
+                communityPosts: revertedPosts,
+                likedPosts: get().likedPosts.filter((p: CommunityPost) => p.id !== postId)
+            });
+            throw error;
+        }
     },
-    unlikePost: (id: string) => set({ likedPosts: get().likedPosts.filter((p: CommunityPost) => p.id !== id) }),
+    unlikePost: async (postId: string) => {
+        const { user, communityPosts } = get();
+        if (!user) return;
+        
+        // OPTIMISTIC UPDATE: Update UI immediately
+        const previousLikedPosts = get().likedPosts;
+        const previousCount = communityPosts.find(p => p.id === postId)?.likeCount || 0;
+        
+        // Remove from liked posts immediately
+        set({ likedPosts: get().likedPosts.filter((p: CommunityPost) => p.id !== postId) });
+        
+        // Decrement like count immediately
+        const updatedPosts = communityPosts.map((post) =>
+            post.id === postId
+                ? { ...post, likeCount: Math.max((post.likeCount || 0) - 1, 0) }
+                : post
+        );
+        set({ communityPosts: updatedPosts });
+        
+        // Sync with Firebase in background
+        try {
+            await fbUnlikePost(user.id, postId);
+        } catch (error) {
+            console.error("Error unliking post:", error);
+            // ROLLBACK on error: revert optimistic update
+            const revertedPosts = communityPosts.map((post) =>
+                post.id === postId
+                    ? { ...post, likeCount: previousCount }
+                    : post
+            );
+            set({ 
+                communityPosts: revertedPosts,
+                likedPosts: previousLikedPosts
+            });
+            throw error;
+        }
+    },
+    loadLikedPosts: async () => {
+        const { user } = get();
+        if (!user) return;
+        
+        try {
+            const likedPosts = await getUserLikedPosts(user.id);
+            set({ likedPosts });
+        } catch (error) {
+            console.error("Error loading liked posts:", error);
+        }
+    },
     loadPosts: async () => {
         const posts = await getCommunityPosts();
         set({ communityPosts: posts });
     },
+    loadUserPosts: async (uid: string) => {
+        const posts = await getUserCommunityPosts(uid);
+        set({ userCommunityPosts: posts });
+    },
     postCommunity: async (uid: string, post: CommunityPost) => {
         const saved = await postCommunityPost(uid, post);
-        set({ communityPosts: [saved, ...get().communityPosts] });
+        set({ 
+            communityPosts: [saved, ...get().communityPosts],
+            userCommunityPosts: [saved, ...get().userCommunityPosts]
+        });
         return saved;
+    },
+    updatePost: async (uid: string, postId: string, updates: Partial<CommunityPost>) => {
+        try {
+            await updateCommunityPost(uid, postId, updates);
+            // Update local state
+            set({ 
+                communityPosts: get().communityPosts.map(post => 
+                    post.id === postId ? { ...post, ...updates } : post
+                )
+            });
+        } catch (error) {
+            console.error('Error updating post:', error);
+            throw error;
+        }
+    },
+    deletePost: async (uid: string, postId: string) => {
+        try {
+            await deleteCommunityPost(uid, postId);
+            // Update local state
+            set({ 
+                communityPosts: get().communityPosts.filter(post => post.id !== postId),
+                userCommunityPosts: get().userCommunityPosts.filter(post => post.id !== postId)
+            });
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            throw error;
+        }
     },
     generateRecipeMock: async (pantry: PantryItem[], options?: any) => {
         return generateRecipeFromPantry(pantry, options);

@@ -1,17 +1,17 @@
-import React from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    Image,
-} from "react-native";
+import { StoreState, useStore } from "@/app/store/useStore";
 import { colors } from "@/app/theme/colors";
+import type { NotificationType } from "@/app/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useStore, StoreState } from "@/app/store/useStore";
-import type { NotificationType } from "@/app/types";
+import React from "react";
+import {
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -158,7 +158,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: colors.neutral50,
     },
     header: {
         flexDirection: "row",
