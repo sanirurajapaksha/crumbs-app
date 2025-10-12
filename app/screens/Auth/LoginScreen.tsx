@@ -26,7 +26,13 @@ export default function LoginScreen() {
         <View style={styles.screen}>
             <View style={styles.contentWrapper}>
                 <View style={styles.content}>
-                    <Text style={styles.brand}>Crumbs</Text>
+                    <View style={styles.logoContainer}>
+                        <Image 
+                            source={require("../../../assets/images/crumbs-logo-tagline.png")} 
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                    </View>
                     <Text style={styles.welcome}>Welcome Back!</Text>
                     <TextInput
                         style={styles.input}
@@ -76,7 +82,14 @@ const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.white },
     contentWrapper: { flex: 1, justifyContent: "center" },
     content: { paddingHorizontal: 24, paddingBottom: 48 },
-    brand: { fontSize: 40, fontWeight: "700", textAlign: "center", marginBottom: 8 },
+    logoContainer: {
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    logo: {
+        width: 300,
+        height: 150,
+    },
     welcome: { fontSize: 20, fontWeight: "600", textAlign: "center", marginBottom: 24 },
     input: {
         backgroundColor: colors.neutral50,
