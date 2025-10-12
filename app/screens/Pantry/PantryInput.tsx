@@ -2,6 +2,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { DuplicateResolutionModal, ResolutionDecision } from "../../components/DuplicateResolutionModal";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
@@ -19,11 +20,18 @@ import {
 export default function PantryInput() {
     const router = useRouter();
     const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
+    const addBatchPantryItemsWithDuplicateCheck = useStore((s: StoreState) => s.addBatchPantryItemsWithDuplicateCheck);
+    const mergePantryItems = useStore((s: StoreState) => s.mergePantryItems);
+    const removePantryItem = useStore((s: StoreState) => s.removePantryItem);
+    
     const [ingredients, setIngredients] = useState<PantryItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [loading, setLoading] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingIngredient, setEditingIngredient] = useState<PantryItem | null>(null);
+    const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
+    const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
+    const [unmatchedItems, setUnmatchedItems] = useState<PantryItem[]>([]);
 
     const handleAddIngredient = async (name: string) => {
         await addIngredient(name, ingredients, setIngredients);
@@ -54,20 +62,103 @@ export default function PantryInput() {
     const handleAddToPantry = async () => {
         setLoading(true);
         try {
-            // Add ingredients directly to pantry with additional metadata
+            // Prepare ingredients with metadata
             const pantryItems = ingredients.map((ingredient) => ({
                 ...ingredient,
                 id: `pantry-${ingredient.id}`,
                 addedAt: new Date().toISOString(),
                 imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
             }));
-            await addBatchPantryItems(pantryItems);
-            Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
+
+            // Check for duplicates using Gemini AI
+            console.log('🔍 Checking for duplicates...');
+            const duplicateResult = await addBatchPantryItemsWithDuplicateCheck(pantryItems);
+
+            if (duplicateResult.hasDuplicates && duplicateResult.matches.length > 0) {
+                // Show duplicate resolution modal
+                setDuplicateMatches(duplicateResult.matches);
+                setUnmatchedItems(duplicateResult.unmatchedNewItems);
+                setDuplicateModalVisible(true);
+            } else {
+                // No duplicates, add all items directly
+                await addBatchPantryItems(pantryItems);
+                Alert.alert(
+                    "Success!", 
+                    `Added ${pantryItems.length} ${pantryItems.length === 1 ? 'item' : 'items'} to your pantry.`, 
+                    [{ text: "OK", onPress: () => setIngredients([]) }]
+                );
+            }
         } catch (error) {
             console.error("[PantryInput] Error adding to pantry:", error);
             Alert.alert("Error", "Failed to add items to pantry. Please try again.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDuplicateResolution = async (resolutions: ResolutionDecision[]) => {
+        setDuplicateModalVisible(false);
+        setLoading(true);
+        
+        try {
+            let mergedCount = 0;
+            let addedCount = 0;
+            let replacedCount = 0;
+
+            // Process each resolution
+            for (const resolution of resolutions) {
+                const { match, action } = resolution;
+
+                switch (action) {
+                    case 'merge':
+                        // Merge existing item with new item
+                        await mergePantryItems(match.existingItem.id, match.newItem);
+                        mergedCount++;
+                        break;
+                    
+                    case 'replace':
+                        // Remove existing and add new
+                        await removePantryItem(match.existingItem.id);
+                        await addBatchPantryItems([match.newItem]);
+                        replacedCount++;
+                        break;
+                    
+                    case 'separate':
+                        // Add new item as separate
+                        await addBatchPantryItems([match.newItem]);
+                        addedCount++;
+                        break;
+                    
+                    case 'skip':
+                        // Do nothing
+                        break;
+                }
+            }
+
+            // Add unmatched items
+            if (unmatchedItems.length > 0) {
+                await addBatchPantryItems(unmatchedItems);
+                addedCount += unmatchedItems.length;
+            }
+
+            // Build success message
+            const messages = [];
+            if (mergedCount > 0) messages.push(`${mergedCount} merged`);
+            if (replacedCount > 0) messages.push(`${replacedCount} replaced`);
+            if (addedCount > 0) messages.push(`${addedCount} added`);
+
+            Alert.alert(
+                "Success!", 
+                `Items updated: ${messages.join(', ')}`,
+                [{ text: "OK", onPress: () => setIngredients([]) }]
+            );
+        } catch (error) {
+            console.error("[PantryInput] Error resolving duplicates:", error);
+            Alert.alert("Error", "Failed to update pantry. Please try again.");
+        } finally {
+            setLoading(false);
+            setDuplicateMatches([]);
+            setUnmatchedItems([]);
         }
     };
 
@@ -191,6 +282,19 @@ export default function PantryInput() {
                     setEditingIngredient(null);
                 }}
                 onSave={handleSaveEditedIngredientWrapper}
+            />
+
+            {/* Duplicate Resolution Modal */}
+            <DuplicateResolutionModal
+                visible={duplicateModalVisible}
+                matches={duplicateMatches}
+                onResolve={handleDuplicateResolution}
+                onCancel={() => {
+                    setDuplicateModalVisible(false);
+                    setDuplicateMatches([]);
+                    setUnmatchedItems([]);
+                    setLoading(false);
+                }}
             />
         </View>
     );

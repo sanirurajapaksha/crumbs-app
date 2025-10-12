@@ -11,6 +11,7 @@ import {
     subscribeToAuth,
     updateUserProfileInFirestore,
 } from "../api/auth";
+import { checkForDuplicates, DuplicateCheckResult, mergePantryItems as mergeItems } from "../api/duplicateDetectionApi";
 import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
 import { generateRecipeFromPantry } from "../api/mockApi";
 import {
@@ -49,9 +50,11 @@ export interface StoreState {
     loadPantryItems: () => Promise<void>;
     addPantryItem: (item: PantryItem) => Promise<void>;
     addBatchPantryItems: (items: PantryItem[]) => Promise<void>;
+    addBatchPantryItemsWithDuplicateCheck: (items: PantryItem[]) => Promise<DuplicateCheckResult>;
     updatePantryItem: (id: string, patch: Partial<PantryItem>) => Promise<void>;
     removePantryItem: (id: string) => Promise<void>;
     clearPantry: () => Promise<void>;
+    mergePantryItems: (existingId: string, newItem: PantryItem) => Promise<void>;
     saveFavorite: (recipe: Recipe) => void;
     removeFavorite: (id: string) => void;
     saveMyRecipe: (recipe: Recipe) => void;
@@ -241,6 +244,63 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             console.error('Error adding batch pantry items:', error);
             // Fallback: add locally if Firebase fails
             set({ pantryItems: [...get().pantryItems, ...items] });
+        }
+    },
+    addBatchPantryItemsWithDuplicateCheck: async (items: PantryItem[]) => {
+        const { pantryItems } = get();
+        
+        try {
+            // Check for duplicates using Gemini AI
+            console.log('🔍 Checking for duplicates...');
+            const duplicateResult = await checkForDuplicates(pantryItems, items);
+            
+            // Return the result so UI can handle it
+            return duplicateResult;
+        } catch (error) {
+            console.error('Error checking for duplicates:', error);
+            // On error, return all as unmatched (safe to add)
+            return {
+                hasDuplicates: false,
+                matches: [],
+                unmatchedNewItems: items
+            };
+        }
+    },
+    mergePantryItems: async (existingId: string, newItem: PantryItem) => {
+        const { user, pantryItems } = get();
+        
+        const existingItem = pantryItems.find(item => item.id === existingId);
+        if (!existingItem) {
+            console.error('Existing item not found for merge');
+            return;
+        }
+
+        // Merge the items
+        const mergedItem = mergeItems(existingItem, newItem);
+        
+        if (!user) {
+            // Fallback for offline mode
+            set({ 
+                pantryItems: pantryItems.map(item => 
+                    item.id === existingId ? mergedItem : item
+                )
+            });
+            return;
+        }
+
+        try {
+            // Update in Firebase
+            const { id, ...updates } = mergedItem;
+            await updatePantryItemInFirebase(user.id, existingId, updates);
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error merging pantry items:', error);
+            // Fallback: update locally if Firebase fails
+            set({ 
+                pantryItems: pantryItems.map(item => 
+                    item.id === existingId ? mergedItem : item
+                )
+            });
         }
     },
     updatePantryItem: async (id: string, patch: Partial<PantryItem>) => {
