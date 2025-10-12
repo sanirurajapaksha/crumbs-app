@@ -157,18 +157,16 @@ const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onEdit }) => {
                 <Text style={styles.itemName} numberOfLines={1}>
                     {item.name}
                 </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <MaterialIcons name="inventory-2" size={14} color={colors.textMuted} />
+                <View style={styles.itemMetaRow}>
                     <Text style={styles.itemQuantity}>{item.quantity || "1 unit"}</Text>
+                    <View style={styles.statusChip}>
+                        <View style={[styles.statusDot, { backgroundColor: expiryInfo.color }]} />
+                        <Text style={styles.statusLabel}>{expiryInfo.status}</Text>
+                    </View>
                 </View>
+                {expiryInfo.daysLeft && <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>}
             </View>
-            <View style={styles.itemStatus}>
-                <View style={[styles.statusBadge, { backgroundColor: `${expiryInfo.color}15` }]}>
-                    <Text style={[styles.statusText, { color: expiryInfo.color }]}>{expiryInfo.status}</Text>
-                </View>
-                {expiryInfo.daysLeft && expiryInfo.status !== "Expired" && <Text style={styles.daysLeftText}>{expiryInfo.daysLeft}</Text>}
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color={colors.textMuted} />
+            <MaterialIcons name="chevron-right" size={22} color={colors.textMuted} />
         </TouchableOpacity>
     );
 };
@@ -249,7 +247,7 @@ export default function PantryTab() {
             setEditModalVisible(false);
             setEditingItem(null);
         } catch (error) {
-            console.error('Error updating pantry item:', error);
+            console.error("Error updating pantry item:", error);
             // You might want to show an alert here
         }
     };
@@ -260,14 +258,14 @@ export default function PantryTab() {
             setEditModalVisible(false);
             setEditingItem(null);
         } catch (error) {
-            console.error('Error deleting pantry item:', error);
+            console.error("Error deleting pantry item:", error);
             // You might want to show an alert here
         }
     };
 
     return (
         <View style={styles.container}>
-            {/* Header with gradient background */}
+            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <View>
@@ -317,16 +315,11 @@ export default function PantryTab() {
                         style={[styles.filterChip, filterView === "expiring" && styles.filterChipActive]}
                         onPress={() => setFilterView("expiring")}
                     >
-                        <MaterialIcons
-                            name="schedule"
-                            size={16}
-                            color={filterView === "expiring" ? colors.white : colors.accent}
-                            style={{ marginRight: 4 }}
-                        />
-                        <Text style={[styles.filterChipText, filterView === "expiring" && styles.filterChipTextActive]}>Expiring Soon</Text>
+                        <View style={[styles.filterChipDot, filterView === "expiring" && styles.filterChipDotActive]} />
+                        <Text style={[styles.filterChipText, filterView === "expiring" && styles.filterChipTextActive]}>Expiring soon</Text>
                         {expiringCount > 0 && (
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{expiringCount}</Text>
+                            <View style={[styles.badge, filterView === "expiring" && styles.badgeActive]}>
+                                <Text style={[styles.badgeText, filterView === "expiring" && styles.badgeTextActive]}>{expiringCount}</Text>
                             </View>
                         )}
                     </TouchableOpacity>
@@ -398,38 +391,31 @@ export default function PantryTab() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.surfaceMuted,
     },
     header: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surfaceMuted,
         paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+        paddingTop: 56,
+        paddingBottom: 24,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.neutral200,
     },
     headerTop: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        marginBottom: 20,
     },
     headerTitle: {
-        fontSize: 32,
-        fontWeight: "800",
+        fontSize: 30,
+        fontWeight: "700",
         color: colors.textPrimary,
-        letterSpacing: -0.5,
+        letterSpacing: -0.4,
     },
     headerSubtitle: {
         fontSize: 14,
         color: colors.textMuted,
-        marginTop: 4,
-        fontWeight: "500",
+        marginTop: 6,
     },
     headerActions: {
         flexDirection: "row",
@@ -437,34 +423,38 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     iconButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: `${colors.accent}15`,
-        justifyContent: "center",
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surface,
         alignItems: "center",
+        justifyContent: "center",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.neutral200,
     },
     addButtonNew: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: colors.accent,
-        justifyContent: "center",
         alignItems: "center",
-        shadowColor: colors.accent,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        justifyContent: "center",
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 1,
+        shadowRadius: 22,
+        elevation: 6,
     },
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.neutral100,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         paddingHorizontal: 16,
-        height: 48,
-        marginBottom: 16,
+        height: 50,
+        marginTop: 24,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.neutral200,
     },
     searchIcon: {
         marginRight: 8,
@@ -480,77 +470,93 @@ const styles = StyleSheet.create({
     },
     filterContainer: {
         flexDirection: "row",
-        gap: 8,
+        gap: 10,
+        marginTop: 18,
     },
     filterChip: {
         flexDirection: "row",
         alignItems: "center",
+        gap: 8,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        borderRadius: 20,
-        backgroundColor: `${colors.accent}15`,
-        borderWidth: 1.5,
-        borderColor: "transparent",
+        borderRadius: 18,
+        backgroundColor: colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.neutral200,
     },
     filterChipActive: {
         backgroundColor: colors.accent,
         borderColor: colors.accent,
     },
     filterChipText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "600",
-        color: colors.accent,
+        color: colors.textSecondary,
     },
     filterChipTextActive: {
         color: colors.white,
     },
-    badge: {
+    filterChipDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.textMuted,
+    },
+    filterChipDotActive: {
         backgroundColor: colors.white,
-        borderRadius: 10,
+    },
+    badge: {
+        marginLeft: 4,
         paddingHorizontal: 6,
         paddingVertical: 2,
-        marginLeft: 6,
-        minWidth: 20,
-        alignItems: "center",
+        borderRadius: 10,
+        backgroundColor: colors.secondarySubtle,
+    },
+    badgeActive: {
+        backgroundColor: colors.surface,
     },
     badgeText: {
         fontSize: 11,
-        fontWeight: "700",
-        color: colors.accent,
+        fontWeight: "600",
+        color: colors.secondary,
+    },
+    badgeTextActive: {
+        color: colors.textPrimary,
     },
     content: {
         flex: 1,
         paddingHorizontal: 20,
-        backgroundColor: colors.neutral50,
+        backgroundColor: colors.surfaceMuted,
     },
     categorySection: {
-        marginTop: 24,
+        marginTop: 32,
     },
     categoryTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "700",
-        color: colors.textPrimary,
+        color: colors.textSecondary,
         marginBottom: 12,
-        paddingLeft: 4,
+        letterSpacing: 1,
+        textTransform: "uppercase",
     },
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.white,
-        borderRadius: 20,
+        backgroundColor: colors.surface,
+        borderRadius: 18,
         padding: 16,
-        marginBottom: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 2,
-        borderWidth: 1,
+        marginBottom: 12,
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: colors.neutral200,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.7,
+        shadowRadius: 24,
+        elevation: 3,
     },
     itemImage: {
-        width: 64,
-        height: 64,
+        width: 56,
+        height: 56,
         borderRadius: 16,
         backgroundColor: colors.neutral100,
     },
@@ -559,47 +565,46 @@ const styles = StyleSheet.create({
         marginLeft: 16,
     },
     itemName: {
-        fontSize: 17,
-        fontWeight: "700",
+        fontSize: 18,
+        fontWeight: "600",
         color: colors.textPrimary,
         marginBottom: 6,
-        letterSpacing: -0.3,
+    },
+    itemMetaRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
     itemQuantity: {
-        fontSize: 14,
-        color: colors.textMuted,
-        fontWeight: "500",
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textSecondary,
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
     },
-    itemStatus: {
-        alignItems: "flex-end",
-        minWidth: 90,
-        marginRight: 8,
-    },
-    statusBadge: {
+    statusChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 8,
-        marginBottom: 4,
+        borderRadius: 12,
+        backgroundColor: colors.secondarySubtle,
     },
-    statusText: {
-        fontSize: 11,
-        fontWeight: "700",
-        textTransform: "uppercase",
-        letterSpacing: 0.8,
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    statusLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.secondary,
     },
     daysLeftText: {
-        fontSize: 11,
+        marginTop: 6,
+        fontSize: 12,
         color: colors.textMuted,
-        fontWeight: "600",
-        textAlign: "right",
-    },
-    editButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: colors.neutral100,
-        justifyContent: "center",
-        alignItems: "center",
     },
     emptyState: {
         alignItems: "center",
@@ -608,10 +613,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
     },
     emptyIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: colors.neutral100,
+        width: 110,
+        height: 110,
+        borderRadius: 26,
+        backgroundColor: colors.secondarySubtle,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 24,
@@ -638,21 +643,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 14,
         borderRadius: 16,
-        shadowColor: colors.accent,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 4,
     },
     emptyStateButtonText: {
         fontSize: 16,
         fontWeight: "700",
         color: colors.white,
     },
-    // Image component styles
     imageContainer: {
-        width: 64,
-        height: 64,
+        width: 56,
+        height: 56,
         borderRadius: 16,
         backgroundColor: colors.neutral100,
         justifyContent: "center",
@@ -673,8 +677,8 @@ const styles = StyleSheet.create({
         zIndex: 2,
     },
     imageFallback: {
-        width: 64,
-        height: 64,
+        width: 56,
+        height: 56,
         borderRadius: 16,
         backgroundColor: colors.neutral200,
         justifyContent: "center",

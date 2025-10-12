@@ -2,10 +2,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import HomePagePostCard from "../screens/Community/HomePagePostCard";
 import { StoreState, useStore, useUtilFunctions, UtilFunctions } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { Recipe } from "../types";
-import HomePagePostCard from "../screens/Community/HomePagePostCard";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.7;
@@ -68,32 +68,52 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.wrapper}>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.logo}>Crumbs</Text>
+            <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Top bar */}
+                <View style={styles.topBar}>
+                    <View style={styles.brandMark}>
+                        <View style={styles.brandIcon}>
+                            <MaterialIcons name="restaurant-menu" size={16} color={colors.accent} />
+                        </View>
+                        <Text style={styles.brandText}>crumbs</Text>
+                    </View>
+                    <TouchableOpacity style={styles.profileButton} onPress={() => router.push("/screens/Settings/SettingsScreen")}>
+                        <MaterialIcons name="person-outline" size={20} color={colors.secondary} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Greeting */}
-                <View style={styles.greetingSection}>
-                    <Text style={styles.greeting}>
-                        {getGreeting()}, {user?.name || "Alex"}!
+                <View style={styles.greetingCard}>
+                    <Text style={styles.greetingLabel}>Welcome back</Text>
+                    <Text style={styles.greetingTitle}>
+                        {getGreeting()}, {user?.name || "Alex"}.
                     </Text>
-                    <Text style={styles.subGreeting}>Discover new recipes tailored just for you.</Text>
+                    <Text style={styles.greetingSubtitle}>Here is what other cooks are making tonight.</Text>
                 </View>
 
                 {/* Recents Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Recents</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Recently cooked</Text>
+                        <TouchableOpacity onPress={() => router.push("/screens/Recipe/RecipeGeneratorScreen")}>
+                            <Text style={styles.sectionLink}>See all</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardRow}>
                         {mockRecentRecipes.map((recipe) => (
-                            <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
+                            <TouchableOpacity
+                                key={recipe.id}
+                                style={styles.recipeCard}
+                                onPress={() => handleRecipePress(recipe)}
+                                activeOpacity={0.85}
+                            >
                                 <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
-                                <View style={styles.recipeInfo}>
+                                <View style={styles.recipeShade} />
+                                <View style={styles.recipeFooter}>
                                     <Text style={styles.recipeTitle}>{recipe.title}</Text>
                                     <View style={styles.recipeMeta}>
                                         <View style={styles.metaItem}>
-                                            <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                            <MaterialIcons name="schedule" size={14} color={colors.white} />
                                             <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
                                         </View>
                                         {recipe.timingTag && (
@@ -110,26 +130,33 @@ export default function HomeScreen() {
 
                 {/* Community Posts Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Community Posts</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color={colors.accent} style={{ padding: 16 }} />
-                        ) : posts.length > 0 ? (
-                            posts.map((post) => <HomePagePostCard key={post.id} {...post} />)
-                        ) : (
-                            <Text style={{ color: colors.textMuted }}>No posts available</Text>
-                        )}
-                    </ScrollView>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Community spotlight</Text>
+                        <TouchableOpacity onPress={() => router.push("/community")}>
+                            <Text style={styles.sectionLink}>Explore</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.communityPanel}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.communityRow}>
+                            {loading ? (
+                                <ActivityIndicator size="small" color={colors.accent} style={styles.loadingState} />
+                            ) : posts.length > 0 ? (
+                                posts.map((post) => <HomePagePostCard key={post.id} {...post} />)
+                            ) : (
+                                <Text style={styles.emptyCopy}>No posts yet. Share your first creation!</Text>
+                            )}
+                        </ScrollView>
+                    </View>
                 </View>
 
                 {/* Bottom spacing for tab bar */}
-                <View style={{ height: 100 }} />
+                <View style={{ height: 120 }} />
             </ScrollView>
 
             {/* Floating Generate Recipe Button */}
-            <TouchableOpacity style={styles.floatingButton} onPress={handleGenerateRecipe}>
-                <MaterialIcons name="auto-awesome" size={22} color={colors.white} />
-                <Text style={styles.floatingText}>Generate Recipe</Text>
+            <TouchableOpacity style={styles.floatingButton} activeOpacity={0.85} onPress={handleGenerateRecipe}>
+                <MaterialIcons name="auto-awesome" size={20} color={colors.white} />
+                <Text style={styles.floatingText}>Generate recipe</Text>
             </TouchableOpacity>
         </View>
     );
@@ -138,129 +165,211 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     wrapper: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.surfaceMuted,
     },
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.surfaceMuted,
     },
-    header: {
+    content: {
+        paddingBottom: 40,
+    },
+    topBar: {
         paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 16,
+        paddingTop: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
-    logo: {
-        fontSize: 28,
+    brandMark: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    brandIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.accentSubtle,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    brandText: {
+        fontSize: 16,
         fontWeight: "700",
         color: colors.textPrimary,
-        textAlign: "center",
+        letterSpacing: 1,
+        textTransform: "uppercase",
     },
-    greetingSection: {
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+    profileButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.secondarySubtle,
+        alignItems: "center",
+        justifyContent: "center",
     },
-    greeting: {
-        fontSize: 28,
+    greetingCard: {
+        marginTop: 24,
+        marginHorizontal: 20,
+        padding: 24,
+        borderRadius: 24,
+        backgroundColor: colors.surface,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 1,
+        shadowRadius: 32,
+        elevation: 6,
+    },
+    greetingLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textMuted,
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        marginBottom: 12,
+    },
+    greetingTitle: {
+        fontSize: 26,
         fontWeight: "700",
         color: colors.textPrimary,
         marginBottom: 8,
     },
-    subGreeting: {
-        fontSize: 16,
+    greetingSubtitle: {
+        fontSize: 15,
         color: colors.textSecondary,
+        lineHeight: 22,
     },
     section: {
-        marginTop: 24,
+        marginTop: 32,
     },
-    sectionTitle: {
-        fontSize: 22,
-        fontWeight: "700",
-        color: colors.textPrimary,
+    sectionHeader: {
         paddingHorizontal: 20,
         marginBottom: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
-    horizontalScroll: {
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: colors.textPrimary,
+    },
+    sectionLink: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.secondary,
+    },
+    cardRow: {
         paddingLeft: 20,
+        paddingRight: 12,
+        gap: 16,
     },
     recipeCard: {
         width: CARD_WIDTH,
-        marginRight: 16,
-        backgroundColor: colors.white,
-        borderRadius: 16,
+        height: 240,
+        borderRadius: 24,
         overflow: "hidden",
-        elevation: 2,
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        backgroundColor: colors.secondarySubtle,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 1,
+        shadowRadius: 30,
+        elevation: 8,
     },
     recipeImage: {
         width: "100%",
-        height: 200,
-        backgroundColor: colors.neutral200,
+        height: "100%",
     },
-    recipeInfo: {
-        padding: 16,
+    recipeShade: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(16,24,40,0.2)",
+    },
+    recipeFooter: {
+        position: "absolute",
+        left: 18,
+        right: 18,
+        bottom: 18,
+        borderRadius: 18,
+        padding: 14,
+        backgroundColor: "rgba(16,24,40,0.72)",
     },
     recipeTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: colors.textPrimary,
-        marginBottom: 8,
-    },
-    recipeDescription: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginBottom: 12,
-        lineHeight: 20,
+        color: colors.white,
+        marginBottom: 10,
     },
     recipeMeta: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        justifyContent: "space-between",
     },
     metaItem: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
+        gap: 6,
     },
     metaText: {
-        fontSize: 14,
-        color: colors.textMuted,
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.white,
     },
     tag: {
-        backgroundColor: "#E8F5E9",
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 14,
+        backgroundColor: "rgba(255,255,255,0.14)",
     },
     tagText: {
         fontSize: 12,
-        color: "#2E7D32",
         fontWeight: "600",
+        color: colors.white,
+    },
+    communityPanel: {
+        marginHorizontal: 20,
+        borderRadius: 24,
+        backgroundColor: colors.surface,
+        paddingVertical: 12,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 1,
+        shadowRadius: 30,
+        elevation: 4,
+    },
+    communityRow: {
+        paddingHorizontal: 16,
+        gap: 16,
+    },
+    loadingState: {
+        paddingHorizontal: 16,
+    },
+    emptyCopy: {
+        color: colors.textMuted,
+        fontSize: 14,
     },
     floatingButton: {
         position: "absolute",
-        bottom: 20,
+        bottom: 28,
         right: 20,
+        paddingHorizontal: 26,
+        paddingVertical: 18,
+        borderRadius: 999,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: colors.accent,
-        paddingVertical: 18,
-        paddingHorizontal: 24,
-        borderRadius: 50,
-        elevation: 8,
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
         gap: 10,
+        backgroundColor: colors.accent,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 1,
+        shadowRadius: 24,
+        elevation: 10,
     },
     floatingText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "700",
         color: colors.white,
-        letterSpacing: 0.5,
+        letterSpacing: 0.2,
+        textTransform: "capitalize",
     },
 });

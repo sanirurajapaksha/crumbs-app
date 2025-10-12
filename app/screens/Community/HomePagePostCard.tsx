@@ -24,7 +24,7 @@ export default function HomePagePostCard(posts: CommunityPost) {
     const unlikePost = useStore((s: StoreState) => s.unlikePost);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
     const [isLiking, setIsLiking] = useState(false);
-    
+
     const hero = posts?.imageURL;
     const avatarURL = posts?.authorAvatarUrl;
     const authorName = posts.authorName;
@@ -33,14 +33,14 @@ export default function HomePagePostCard(posts: CommunityPost) {
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
     const tags = posts.tags?.slice(0, 2) || [];
-    
+
     // Check if user has liked this post
     const isLiked = likedPosts.some((p) => p.id === posts.id);
 
     const handleLikeToggle = async (e: any) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (!user) {
             Alert.alert("Login Required", "Please login to like posts");
             return;
@@ -52,11 +52,11 @@ export default function HomePagePostCard(posts: CommunityPost) {
         try {
             // Fire and forget - optimistic update handles UI
             if (isLiked) {
-                unlikePost(posts.id).catch(err => {
+                unlikePost(posts.id).catch((err) => {
                     console.error("Like sync failed:", err);
                 });
             } else {
-                likePost(posts.id).catch(err => {
+                likePost(posts.id).catch((err) => {
                     console.error("Like sync failed:", err);
                 });
             }
@@ -87,17 +87,8 @@ export default function HomePagePostCard(posts: CommunityPost) {
                         </View>
 
                         {/* Like Button Overlay */}
-                        <TouchableOpacity 
-                            style={styles.likeButton} 
-                            activeOpacity={0.7}
-                            onPress={handleLikeToggle}
-                            disabled={isLiking}
-                        >
-                            <Ionicons 
-                                name={isLiked ? "heart" : "heart-outline"} 
-                                size={20} 
-                                color={isLiked ? colors.danger : colors.white} 
-                            />
+                        <TouchableOpacity style={styles.likeButton} activeOpacity={0.7} onPress={handleLikeToggle} disabled={isLiking}>
+                            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={20} color={isLiked ? colors.danger : colors.white} />
                         </TouchableOpacity>
                     </View>
 
@@ -158,17 +149,17 @@ const styles = StyleSheet.create({
         marginVertical: 8,
     },
     card: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: 20,
-        width: 280,
+        width: 260,
         overflow: "hidden",
-        elevation: 8,
-        shadowColor: colors.black,
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        borderWidth: 2,
-        borderColor: colors.neutral100,
+        shadowColor: colors.shadow,
+        shadowOpacity: 1,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 12 },
+        elevation: 6,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.neutral200,
     },
     heroContainer: {
         position: "relative",
@@ -193,11 +184,10 @@ const styles = StyleSheet.create({
         left: 16,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.95)",
+        backgroundColor: "rgba(255,255,255,0.88)",
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 20,
-        backdropFilter: "blur(10px)",
+        borderRadius: 18,
     },
     authorAvatar: {
         width: 28,
@@ -232,10 +222,9 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: "rgba(16,24,40,0.28)",
         alignItems: "center",
         justifyContent: "center",
-        backdropFilter: "blur(10px)",
     },
     cardContent: {
         padding: 16,
@@ -244,8 +233,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     title: {
-        fontSize: 18,
-        fontWeight: "800",
+        fontSize: 17,
+        fontWeight: "700",
         color: colors.textPrimary,
         lineHeight: 22,
         marginBottom: 6,
@@ -262,12 +251,10 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     tag: {
-        backgroundColor: colors.accent + "15", // 15% opacity
+        backgroundColor: colors.accentSubtle,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.accent + "30", // 30% opacity
     },
     tagText: {
         fontSize: 11,
@@ -291,7 +278,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: colors.neutral50,
+        backgroundColor: colors.secondarySubtle,
         alignItems: "center",
         justifyContent: "center",
     },
