@@ -8,7 +8,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -44,7 +43,6 @@ export default function RecipeGeneratorScreen() {
     const pantryItems = useStore((s: StoreState) => s.pantryItems);
     const generateRecipeWithAI = useStore((s: StoreState) => s.generateRecipeWithAI);
 
-    const [searchQuery, setSearchQuery] = useState("");
     const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
     const [selectedGoal, setSelectedGoal] = useState<string>("");
     const [servings, setServings] = useState<number>(2);
@@ -99,181 +97,222 @@ export default function RecipeGeneratorScreen() {
     };
 
     // Get top pantry items for display
-    const displayPantryItems = pantryItems.slice(0, 5);
+    const displayPantryItems = pantryItems.slice(0, 8);
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
+            {/* Custom Header with Gradient Background */}
+            <View style={styles.headerGradient}>
+                <View style={styles.headerContent}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
+                        <MaterialIcons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>What's for Dinner?</Text>
-                    <View style={{ width: 40 }} />
-                </View>
-
-                {/* Search Input */}
-                <View style={styles.searchContainer}>
-                    <MaterialIcons name="search" size={22} color={colors.textMuted} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="What are we cooking?"
-                        placeholderTextColor={colors.textMuted}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                </View>
-
-                {/* Your Pantry Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Your Pantry</Text>
-                        <TouchableOpacity onPress={() => router.push("/(tabs)/pantry")}>
-                            <Text style={styles.viewAllText}>View all →</Text>
-                        </TouchableOpacity>
+                    <View style={styles.headerTextContainer}>
+                        <Text style={styles.headerTitle}>What to Cook?</Text>
+                        <Text style={styles.headerSubtitle}>Let AI create your perfect recipe</Text>
                     </View>
+                    <TouchableOpacity style={styles.infoButton}>
+                        <MaterialIcons name="info-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
 
-                    {pantryItems.length > 0 ? (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pantryScroll}>
+                {/* Pantry Status Card */}
+                <View style={styles.pantryStatusCard}>
+                    <View style={styles.pantryStatusLeft}>
+                        <View style={styles.pantryIconContainer}>
+                            <MaterialIcons name="kitchen" size={28} color={colors.accent} />
+                        </View>
+                        <View>
+                            <Text style={styles.pantryStatusTitle}>Your Pantry</Text>
+                            <Text style={styles.pantryStatusCount}>
+                                {pantryItems.length} ingredient{pantryItems.length !== 1 ? 's' : ''} ready
+                            </Text>
+                        </View>
+                    </View>
+                    <TouchableOpacity 
+                        style={styles.managePantryButton}
+                        onPress={() => router.push("/(tabs)/pantry")}
+                    >
+                        <Text style={styles.managePantryText}>Manage</Text>
+                        <MaterialIcons name="chevron-right" size={18} color={colors.accent} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent} 
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollView}
+            >
+                {/* Pantry Items Preview */}
+                {pantryItems.length > 0 ? (
+                    <View style={styles.pantryPreviewSection}>
+                        <View style={styles.pantryGrid}>
                             {displayPantryItems.map((item) => (
-                                <View key={item.id} style={styles.pantryCard}>
+                                <View key={item.id} style={styles.pantryGridItem}>
                                     {item.imageUrl ? (
-                                        <Image source={{ uri: item.imageUrl }} style={styles.pantryImage} />
+                                        <Image source={{ uri: item.imageUrl }} style={styles.pantryGridImage} />
                                     ) : (
-                                        <View style={[styles.pantryImage, styles.pantryImagePlaceholder]}>
-                                            <Text style={styles.pantryImageEmoji}>🥘</Text>
+                                        <View style={[styles.pantryGridImage, styles.pantryGridImagePlaceholder]}>
+                                            <Text style={styles.pantryGridEmoji}>🥘</Text>
                                         </View>
                                     )}
-                                    <Text style={styles.pantryItemName} numberOfLines={1}>
+                                    <Text style={styles.pantryGridName} numberOfLines={1}>
                                         {item.name}
                                     </Text>
-                                    {item.quantity && (
-                                        <Text style={styles.pantryItemQty}>{item.quantity}</Text>
-                                    )}
                                 </View>
                             ))}
-                        </ScrollView>
-                    ) : (
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.emptyPantrySection}>
                         <View style={styles.emptyPantryCard}>
-                            <MaterialIcons name="kitchen" size={40} color={colors.textMuted} />
-                            <Text style={styles.emptyPantryText}>Your pantry is empty</Text>
-                            <Text style={styles.emptyPantrySubtext}>Add ingredients to get started</Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Input Methods */}
-                <View style={styles.inputMethodsContainer}>
-                    <TouchableOpacity style={styles.inputMethod} onPress={() => navigateToPantry("camera")}>
-                        <View style={styles.inputMethodIcon}>
-                            <MaterialIcons name="photo-camera" size={26} color={colors.accent} />
-                        </View>
-                        <Text style={styles.inputMethodText}>Camera</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.inputMethod} onPress={() => navigateToPantry("voice")}>
-                        <View style={styles.inputMethodIcon}>
-                            <MaterialIcons name="mic" size={26} color={colors.accent} />
-                        </View>
-                        <Text style={styles.inputMethodText}>Voice</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.inputMethod} onPress={() => navigateToPantry("manual")}>
-                        <View style={styles.inputMethodIcon}>
-                            <MaterialIcons name="edit" size={26} color={colors.accent} />
-                        </View>
-                        <Text style={styles.inputMethodText}>Manual</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Dietary Preferences */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Dietary Preferences</Text>
-                    <View style={styles.chipsContainer}>
-                        {DIETARY_OPTIONS.map((option) => (
-                            <TouchableOpacity
-                                key={option.id}
-                                style={[styles.chip, selectedDietary.includes(option.id) && styles.chipSelected]}
-                                onPress={() => toggleDietary(option.id)}
-                            >
-                                <Text style={styles.chipEmoji}>{option.icon}</Text>
-                                <Text
-                                    style={[
-                                        styles.chipText,
-                                        selectedDietary.includes(option.id) && styles.chipTextSelected,
-                                    ]}
-                                >
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {/* My Goal Dropdown */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>My Goal</Text>
-                    <View style={styles.goalsContainer}>
-                        {HEALTH_GOALS.map((goal) => (
-                            <TouchableOpacity
-                                key={goal.id}
-                                style={[styles.goalOption, selectedGoal === goal.id && styles.goalOptionSelected]}
-                                onPress={() => selectGoal(goal.id)}
-                            >
-                                <Text style={styles.goalEmoji}>{goal.icon}</Text>
-                                <Text
-                                    style={[
-                                        styles.goalText,
-                                        selectedGoal === goal.id && styles.goalTextSelected,
-                                    ]}
-                                >
-                                    {goal.label}
-                                </Text>
-                                {selectedGoal === goal.id && (
-                                    <MaterialIcons name="check-circle" size={20} color={colors.accent} />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Additional Options */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Preferences</Text>
-                    <View style={styles.preferencesRow}>
-                        <View style={styles.preferenceItem}>
-                            <Text style={styles.preferenceLabel}>Servings</Text>
-                            <View style={styles.counterContainer}>
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={() => setServings(Math.max(1, servings - 1))}
-                                >
-                                    <MaterialIcons name="remove" size={20} color={colors.textPrimary} />
-                                </TouchableOpacity>
-                                <Text style={styles.counterValue}>{servings}</Text>
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={() => setServings(Math.min(12, servings + 1))}
-                                >
-                                    <MaterialIcons name="add" size={20} color={colors.textPrimary} />
-                                </TouchableOpacity>
+                            <View style={styles.emptyIconCircle}>
+                                <MaterialIcons name="shopping-basket" size={40} color={colors.accent} />
                             </View>
+                            <Text style={styles.emptyPantryTitle}>Start Adding Ingredients</Text>
+                            <Text style={styles.emptyPantryText}>
+                                Add items to your pantry to generate personalized recipes
+                            </Text>
                         </View>
-                        <View style={styles.preferenceItem}>
-                            <Text style={styles.preferenceLabel}>Max Time (min)</Text>
-                            <View style={styles.counterContainer}>
+                    </View>
+                )}
+
+                {/* Quick Add Methods */}
+                <View style={styles.quickAddSection}>
+                    <Text style={styles.sectionLabel}>ADD INGREDIENTS</Text>
+                    <View style={styles.quickAddGrid}>
+                        <TouchableOpacity 
+                            style={styles.quickAddCard} 
+                            onPress={() => navigateToPantry("camera")}
+                        >
+                            <View style={[styles.quickAddIcon, { backgroundColor: '#FFE8E0' }]}>
+                                <MaterialIcons name="photo-camera" size={32} color={colors.accent} />
+                            </View>
+                            <Text style={styles.quickAddTitle}>Snap Photo</Text>
+                            <Text style={styles.quickAddDesc}>Take a picture</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={styles.quickAddCard} 
+                            onPress={() => navigateToPantry("voice")}
+                        >
+                            <View style={[styles.quickAddIcon, { backgroundColor: '#E8F5FF' }]}>
+                                <MaterialIcons name="mic" size={32} color="#4A90E2" />
+                            </View>
+                            <Text style={styles.quickAddTitle}>Voice Input</Text>
+                            <Text style={styles.quickAddDesc}>Speak to add</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={styles.quickAddCard} 
+                            onPress={() => navigateToPantry("manual")}
+                        >
+                            <View style={[styles.quickAddIcon, { backgroundColor: '#F0E8FF' }]}>
+                                <MaterialIcons name="edit" size={32} color="#8B5CF6" />
+                            </View>
+                            <Text style={styles.quickAddTitle}>Type In</Text>
+                            <Text style={styles.quickAddDesc}>Manual entry</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Customization Section */}
+                <View style={styles.customizationSection}>
+                    <Text style={styles.sectionLabel}>CUSTOMIZE YOUR RECIPE</Text>
+                    
+                    {/* Dietary Preferences - Compact Pills */}
+                    <View style={styles.customizationCard}>
+                        <View style={styles.cardHeader}>
+                            <MaterialIcons name="restaurant" size={20} color={colors.textPrimary} />
+                            <Text style={styles.cardTitle}>Dietary Preferences</Text>
+                        </View>
+                        <View style={styles.pillsContainer}>
+                            {DIETARY_OPTIONS.map((option) => (
                                 <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={() => setMaxTime(Math.max(15, maxTime - 15))}
+                                    key={option.id}
+                                    style={[styles.pill, selectedDietary.includes(option.id) && styles.pillSelected]}
+                                    onPress={() => toggleDietary(option.id)}
                                 >
-                                    <MaterialIcons name="remove" size={20} color={colors.textPrimary} />
+                                    <Text style={styles.pillEmoji}>{option.icon}</Text>
+                                    <Text style={[styles.pillText, selectedDietary.includes(option.id) && styles.pillTextSelected]}>
+                                        {option.label}
+                                    </Text>
                                 </TouchableOpacity>
-                                <Text style={styles.counterValue}>{maxTime}</Text>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Health Goals - Radio Style */}
+                    <View style={styles.customizationCard}>
+                        <View style={styles.cardHeader}>
+                            <MaterialIcons name="favorite" size={20} color={colors.textPrimary} />
+                            <Text style={styles.cardTitle}>Health Goal</Text>
+                        </View>
+                        <View style={styles.radioContainer}>
+                            {HEALTH_GOALS.map((goal) => (
                                 <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={() => setMaxTime(Math.min(180, maxTime + 15))}
+                                    key={goal.id}
+                                    style={[styles.radioOption, selectedGoal === goal.id && styles.radioOptionSelected]}
+                                    onPress={() => selectGoal(goal.id)}
                                 >
-                                    <MaterialIcons name="add" size={20} color={colors.textPrimary} />
+                                    <View style={[styles.radioCircle, selectedGoal === goal.id && styles.radioCircleSelected]}>
+                                        {selectedGoal === goal.id && <View style={styles.radioInner} />}
+                                    </View>
+                                    <Text style={styles.radioEmoji}>{goal.icon}</Text>
+                                    <Text style={[styles.radioText, selectedGoal === goal.id && styles.radioTextSelected]}>
+                                        {goal.label}
+                                    </Text>
                                 </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Preferences - Modern Cards */}
+                    <View style={styles.preferencesCard}>
+                        <View style={styles.preferenceRow}>
+                            <View style={styles.preferenceBox}>
+                                <Text style={styles.preferenceTitle}>Servings</Text>
+                                <View style={styles.preferenceControl}>
+                                    <TouchableOpacity
+                                        style={styles.controlButton}
+                                        onPress={() => setServings(Math.max(1, servings - 1))}
+                                    >
+                                        <MaterialIcons name="remove-circle-outline" size={28} color={colors.accent} />
+                                    </TouchableOpacity>
+                                    <View style={styles.valueDisplay}>
+                                        <Text style={styles.valueNumber}>{servings}</Text>
+                                        <Text style={styles.valueLabel}>people</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.controlButton}
+                                        onPress={() => setServings(Math.min(12, servings + 1))}
+                                    >
+                                        <MaterialIcons name="add-circle-outline" size={28} color={colors.accent} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={styles.preferenceBox}>
+                                <Text style={styles.preferenceTitle}>Max Time</Text>
+                                <View style={styles.preferenceControl}>
+                                    <TouchableOpacity
+                                        style={styles.controlButton}
+                                        onPress={() => setMaxTime(Math.max(15, maxTime - 15))}
+                                    >
+                                        <MaterialIcons name="remove-circle-outline" size={28} color={colors.accent} />
+                                    </TouchableOpacity>
+                                    <View style={styles.valueDisplay}>
+                                        <Text style={styles.valueNumber}>{maxTime}</Text>
+                                        <Text style={styles.valueLabel}>minutes</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.controlButton}
+                                        onPress={() => setMaxTime(Math.min(180, maxTime + 15))}
+                                    >
+                                        <MaterialIcons name="add-circle-outline" size={28} color={colors.accent} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
                     </View>
@@ -290,7 +329,8 @@ export default function RecipeGeneratorScreen() {
                     onPress={handleGenerateRecipe}
                     disabled={isGenerating}
                 >
-                    <Text style={styles.generateButtonText}>Generate Recipe</Text>
+                    <MaterialIcons name="auto-awesome" size={22} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.generateButtonText}>Generate AI Recipe</Text>
                 </TouchableOpacity>
             </View>
 
@@ -303,294 +343,394 @@ export default function RecipeGeneratorScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F5F7FA",
     },
-    scrollContent: {
-        paddingBottom: 120,
+    // Header with Gradient
+    headerGradient: {
+        backgroundColor: colors.accent,
+        paddingTop: 48,
+        paddingBottom: 24,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
     },
-    header: {
+    headerContent: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 48,
-        paddingBottom: 20,
+        marginBottom: 20,
     },
     backButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: "#fff",
+        backgroundColor: "rgba(255,255,255,0.2)",
         alignItems: "center",
         justifyContent: "center",
+    },
+    infoButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "rgba(255,255,255,0.2)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    headerTextContainer: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: "800",
+        color: "#fff",
+        letterSpacing: 0.5,
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        fontWeight: "500",
+        color: "rgba(255,255,255,0.9)",
+        marginTop: 4,
+    },
+    // Pantry Status Card
+    pantryStatusCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#fff",
+        padding: 16,
+        borderRadius: 20,
+        marginTop: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 3,
     },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: "800",
-        color: colors.textPrimary,
-        letterSpacing: 0.3,
-    },
-    searchContainer: {
+    pantryStatusLeft: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
-        marginHorizontal: 20,
-        marginBottom: 28,
-        paddingHorizontal: 18,
-        paddingVertical: 14,
-        borderRadius: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 3,
-    },
-    searchIcon: {
-        marginRight: 12,
-    },
-    searchInput: {
         flex: 1,
-        fontSize: 16,
-        color: colors.textPrimary,
     },
-    section: {
-        marginBottom: 32,
-        paddingHorizontal: 20,
-    },
-    sectionHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
+    pantryIconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: "#FFE8E0",
         alignItems: "center",
-        marginBottom: 16,
+        justifyContent: "center",
+        marginRight: 14,
     },
-    sectionTitle: {
-        fontSize: 20,
+    pantryStatusTitle: {
+        fontSize: 16,
         fontWeight: "700",
         color: colors.textPrimary,
-        letterSpacing: 0.2,
     },
-    viewAllText: {
-        fontSize: 14,
-        color: colors.accent,
-        fontWeight: "600",
+    pantryStatusCount: {
+        fontSize: 13,
+        fontWeight: "500",
+        color: colors.textMuted,
+        marginTop: 2,
     },
-    pantryScroll: {
-        marginHorizontal: -20,
-        paddingHorizontal: 20,
-    },
-    pantryCard: {
-        width: 110,
-        marginRight: 16,
-        backgroundColor: "#fff",
-        borderRadius: 20,
-        padding: 16,
+    managePantryButton: {
+        flexDirection: "row",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 1,
+        backgroundColor: "#FFF5F0",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 12,
     },
-    pantryImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        marginBottom: 12,
+    managePantryText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.accent,
+        marginRight: 4,
     },
-    pantryImagePlaceholder: {
+    // Scroll View
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 120,
+    },
+    // Pantry Preview Grid
+    pantryPreviewSection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    pantryGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 12,
+    },
+    pantryGridItem: {
+        width: (width - 64) / 4,
+        alignItems: "center",
+    },
+    pantryGridImage: {
+        width: (width - 64) / 4,
+        height: (width - 64) / 4,
+        borderRadius: 16,
+        marginBottom: 6,
+    },
+    pantryGridImagePlaceholder: {
         backgroundColor: "#F8F8F8",
         alignItems: "center",
         justifyContent: "center",
     },
-    pantryImageEmoji: {
-        fontSize: 34,
+    pantryGridEmoji: {
+        fontSize: 24,
     },
-    pantryItemName: {
-        fontSize: 14,
+    pantryGridName: {
+        fontSize: 11,
         fontWeight: "600",
         color: colors.textPrimary,
         textAlign: "center",
     },
-    pantryItemQty: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginTop: 4,
-        fontWeight: "500",
+    // Empty Pantry
+    emptyPantrySection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
     },
     emptyPantryCard: {
         backgroundColor: "#fff",
-        borderRadius: 20,
+        borderRadius: 24,
         padding: 40,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "#F0F0F0",
-        borderStyle: "dashed",
     },
-    emptyPantryText: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: colors.textPrimary,
-        marginTop: 16,
-    },
-    emptyPantrySubtext: {
-        fontSize: 14,
-        color: colors.textMuted,
-        marginTop: 6,
-    },
-    inputMethodsContainer: {
-        flexDirection: "row",
-        justifyContent: "space-evenly",
-        paddingHorizontal: 20,
-        marginBottom: 32,
-        gap: 12,
-    },
-    inputMethod: {
-        flex: 1,
-        alignItems: "center",
-        backgroundColor: "#fff",
-        padding: 20,
-        borderRadius: 18,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    inputMethodIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: "#FFF0EB",
+    emptyIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: "#FFE8E0",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 10,
+        marginBottom: 20,
     },
-    inputMethodText: {
-        fontSize: 13,
-        fontWeight: "600",
+    emptyPantryTitle: {
+        fontSize: 20,
+        fontWeight: "700",
         color: colors.textPrimary,
+        marginBottom: 8,
     },
-    chipsContainer: {
+    emptyPantryText: {
+        fontSize: 14,
+        color: colors.textMuted,
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    // Quick Add Section
+    quickAddSection: {
+        paddingHorizontal: 20,
+        marginTop: 24,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: colors.textMuted,
+        letterSpacing: 1,
+        marginBottom: 16,
+    },
+    quickAddGrid: {
+        flexDirection: "row",
+        gap: 12,
+    },
+    quickAddCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 20,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+    },
+    quickAddIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
+    },
+    quickAddTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    quickAddDesc: {
+        fontSize: 11,
+        color: colors.textMuted,
+        fontWeight: "500",
+    },
+    // Customization Section
+    customizationSection: {
+        paddingHorizontal: 20,
+        marginTop: 32,
+    },
+    customizationCard: {
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+    },
+    cardHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.textPrimary,
+        marginLeft: 10,
+    },
+    // Pills (Dietary)
+    pillsContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
         gap: 10,
     },
-    chip: {
+    pill: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        borderRadius: 24,
-        borderWidth: 1.5,
+        backgroundColor: "#F8F9FA",
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 2,
         borderColor: "#E5E5E5",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 1,
     },
-    chipSelected: {
+    pillSelected: {
         backgroundColor: colors.accent,
         borderColor: colors.accent,
     },
-    chipEmoji: {
-        fontSize: 18,
-        marginRight: 8,
+    pillEmoji: {
+        fontSize: 16,
+        marginRight: 6,
     },
-    chipText: {
-        fontSize: 14,
+    pillText: {
+        fontSize: 13,
         fontWeight: "600",
         color: colors.textPrimary,
     },
-    chipTextSelected: {
+    pillTextSelected: {
         color: "#fff",
     },
-    goalsContainer: {
-        gap: 12,
+    // Radio Options (Goals)
+    radioContainer: {
+        gap: 10,
     },
-    goalOption: {
+    radioOption: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
-        padding: 18,
+        backgroundColor: "#F8F9FA",
+        padding: 14,
         borderRadius: 16,
-        borderWidth: 1.5,
+        borderWidth: 2,
         borderColor: "#E5E5E5",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 1,
     },
-    goalOptionSelected: {
+    radioOptionSelected: {
         backgroundColor: "#FFF5F0",
         borderColor: colors.accent,
+    },
+    radioCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
         borderWidth: 2,
+        borderColor: "#C4C4C4",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
     },
-    goalEmoji: {
-        fontSize: 26,
-        marginRight: 14,
+    radioCircleSelected: {
+        borderColor: colors.accent,
     },
-    goalText: {
+    radioInner: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: colors.accent,
+    },
+    radioEmoji: {
+        fontSize: 22,
+        marginRight: 12,
+    },
+    radioText: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "600",
         color: colors.textPrimary,
     },
-    goalTextSelected: {
+    radioTextSelected: {
         color: colors.accent,
         fontWeight: "700",
     },
-    preferencesRow: {
-        flexDirection: "row",
-        gap: 12,
-    },
-    preferenceItem: {
-        flex: 1,
+    // Preferences Card
+    preferencesCard: {
         backgroundColor: "#fff",
-        padding: 18,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        borderColor: "#E5E5E5",
+        borderRadius: 20,
+        padding: 20,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
     },
-    preferenceLabel: {
-        fontSize: 13,
-        fontWeight: "600",
-        color: colors.textMuted,
-        marginBottom: 14,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
+    preferenceRow: {
+        flexDirection: "row",
+        gap: 16,
     },
-    counterContainer: {
+    preferenceBox: {
+        flex: 1,
+        alignItems: "center",
+    },
+    preferenceTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.textPrimary,
+        marginBottom: 16,
+    },
+    preferenceControl: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        width: "100%",
     },
-    counterButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: "#F5F5F5",
+    controlButton: {
+        padding: 4,
+    },
+    valueDisplay: {
         alignItems: "center",
-        justifyContent: "center",
     },
-    counterValue: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: colors.textPrimary,
+    valueNumber: {
+        fontSize: 28,
+        fontWeight: "800",
+        color: colors.accent,
     },
+    valueLabel: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: colors.textMuted,
+        marginTop: 2,
+    },
+    // Generate Button
     generateButtonContainer: {
         position: "absolute",
         bottom: 0,
@@ -599,7 +739,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 24,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F5F7FA",
         borderTopWidth: 1,
         borderTopColor: "#E5E5E5",
     },
@@ -607,19 +747,19 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         backgroundColor: colors.accent,
         paddingVertical: 20,
-        borderRadius: 16,
+        borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
         shadowColor: colors.accent,
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 8,
     },
     generateButtonText: {
-        fontSize: 17,
-        fontWeight: "700",
+        fontSize: 18,
+        fontWeight: "800",
         color: "#fff",
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
     },
 });
