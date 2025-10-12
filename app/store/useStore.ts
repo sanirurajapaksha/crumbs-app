@@ -1,20 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, PantryItem, Recipe, CommunityPost, Notification } from "../types";
-import {
-    loginWithEmail,
-    logout as fbLogout,
-    signupWithEmail,
-    subscribeToAuth,
-    deleteAccount as fbDeleteAccount,
-    sendPasswordReset,
-    updateUserProfileInFirestore,
-} from "../api/auth";
-import { generateRecipeFromPantry } from "../api/mockApi";
-import { postCommunityPost, getCommunityPosts } from "../api/post-api";
-import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
 import { router } from "expo-router";
 import { create, StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+    deleteAccount as fbDeleteAccount,
+    logout as fbLogout,
+    loginWithEmail,
+    sendPasswordReset,
+    signupWithEmail,
+    subscribeToAuth,
+    updateUserProfileInFirestore,
+} from "../api/auth";
+import { generateRecipeWithGemini } from "../api/geminiRecipeApi";
+import { generateRecipeFromPantry } from "../api/mockApi";
+import {
+    addPantryItemToFirebase,
+    clearUserPantryItems,
+    deletePantryItemFromFirebase,
+    loadUserPantryItems,
+    subscribeToPantryItems,
+    updatePantryItemInFirebase
+} from "../api/pantryFirebaseApi";
+import { getCommunityPosts, postCommunityPost } from "../api/post-api";
+import { CommunityPost, Notification, PantryItem, Recipe, User } from "../types";
 
 export interface StoreState {
     user: User | null;
@@ -26,6 +34,8 @@ export interface StoreState {
     communityPosts: CommunityPost[];
     notifications: Notification[];
     hasOnboarded?: boolean;
+    // Firebase subscriptions
+    pantrySubscription?: (() => void) | null;
     // actions
     setUser: (u: User) => void;
     clearUser: () => void;
@@ -36,11 +46,12 @@ export interface StoreState {
     deleteAccount: (password: string) => Promise<void>;
     resetPassword?: (email: string) => Promise<void>;
     startAuthListener: () => void;
-    addPantryItem: (item: PantryItem) => void;
-    addBatchPantryItems: (items: PantryItem[]) => void;
-    updatePantryItem: (id: string, patch: Partial<PantryItem>) => void;
-    removePantryItem: (id: string) => void;
-    clearPantry: () => void;
+    loadPantryItems: () => Promise<void>;
+    addPantryItem: (item: PantryItem) => Promise<void>;
+    addBatchPantryItems: (items: PantryItem[]) => Promise<void>;
+    updatePantryItem: (id: string, patch: Partial<PantryItem>) => Promise<void>;
+    removePantryItem: (id: string) => Promise<void>;
+    clearPantry: () => Promise<void>;
     saveFavorite: (recipe: Recipe) => void;
     removeFavorite: (id: string) => void;
     saveMyRecipe: (recipe: Recipe) => void;
@@ -96,8 +107,26 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
     notifications: [],
     hasOnboarded: false,
     authLoading: false,
-    setUser: (u: User) => set({ user: u }),
-    clearUser: () => set({ user: null }),
+    pantrySubscription: null,
+    setUser: (u: User) => {
+        set({ user: u });
+        // Start pantry subscription when user logs in
+        if (u && !get().pantrySubscription) {
+            const unsubscribe = subscribeToPantryItems(u.id, (items) => {
+                set({ pantryItems: items });
+            });
+            set({ pantrySubscription: unsubscribe });
+        }
+    },
+    clearUser: () => {
+        // Clean up pantry subscription when user logs out
+        const { pantrySubscription } = get();
+        if (pantrySubscription) {
+            pantrySubscription();
+            set({ pantrySubscription: null });
+        }
+        set({ user: null, pantryItems: [] });
+    },
     login: async (email: string, password: string) => {
         set({ authLoading: true });
         try {
@@ -130,7 +159,7 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         set({ authLoading: true });
         try {
             await fbLogout();
-            set({ user: null });
+            get().clearUser(); // Use clearUser to clean up subscriptions
         } finally {
             set({ authLoading: false });
             // redirect to login
@@ -141,10 +170,9 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         set({ authLoading: true });
         try {
             await fbDeleteAccount(password);
-            // Clear all user data from store
+            // Clear all user data from store and clean up subscriptions
+            get().clearUser();
             set({
-                user: null,
-                pantryItems: [],
                 favorites: [],
                 myRecipes: [],
                 likedPosts: [],
@@ -162,16 +190,107 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
             if (u) {
                 const currentUser = get().user;
                 const mergedUser = currentUser ? { ...u, avatarUrl: u.avatarUrl, bio: u.bio } : u;
-                set({ user: mergedUser });
-            } else set({ user: null });
+                get().setUser(mergedUser); // Use setUser to trigger pantry subscription
+            } else {
+                get().clearUser(); // Use clearUser to clean up subscriptions
+            }
         });
     },
-    addPantryItem: (item: PantryItem) => set({ pantryItems: [...get().pantryItems, item] }),
-    addBatchPantryItems: (items: PantryItem[]) => set({ pantryItems: [...get().pantryItems, ...items] }),
-    updatePantryItem: (id: string, patch: Partial<PantryItem>) =>
-        set({ pantryItems: get().pantryItems.map((p: PantryItem) => (p.id === id ? { ...p, ...patch } : p)) }),
-    removePantryItem: (id: string) => set({ pantryItems: get().pantryItems.filter((p: PantryItem) => p.id !== id) }),
-    clearPantry: () => set({ pantryItems: [] }),
+    loadPantryItems: async () => {
+        const { user } = get();
+        if (!user) return;
+        try {
+            const items = await loadUserPantryItems(user.id);
+            set({ pantryItems: items });
+        } catch (error) {
+            console.error('Error loading pantry items:', error);
+        }
+    },
+    addPantryItem: async (item: PantryItem) => {
+        const { user } = get();
+        if (!user) {
+            // Fallback for offline mode
+            set({ pantryItems: [...get().pantryItems, item] });
+            return;
+        }
+        try {
+            const { id, ...itemData } = item;
+            await addPantryItemToFirebase(user.id, itemData);
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error adding pantry item:', error);
+            // Fallback: add locally if Firebase fails
+            set({ pantryItems: [...get().pantryItems, item] });
+        }
+    },
+    addBatchPantryItems: async (items: PantryItem[]) => {
+        const { user } = get();
+        if (!user) {
+            // Fallback for offline mode
+            set({ pantryItems: [...get().pantryItems, ...items] });
+            return;
+        }
+        try {
+            // Add items one by one to Firebase
+            for (const item of items) {
+                const { id, ...itemData } = item;
+                await addPantryItemToFirebase(user.id, itemData);
+            }
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error adding batch pantry items:', error);
+            // Fallback: add locally if Firebase fails
+            set({ pantryItems: [...get().pantryItems, ...items] });
+        }
+    },
+    updatePantryItem: async (id: string, patch: Partial<PantryItem>) => {
+        const { user } = get();
+        if (!user) {
+            // Fallback for offline mode
+            set({ pantryItems: get().pantryItems.map((p: PantryItem) => (p.id === id ? { ...p, ...patch } : p)) });
+            return;
+        }
+        try {
+            await updatePantryItemInFirebase(user.id, id, patch);
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error updating pantry item:', error);
+            // Fallback: update locally if Firebase fails
+            set({ pantryItems: get().pantryItems.map((p: PantryItem) => (p.id === id ? { ...p, ...patch } : p)) });
+        }
+    },
+    removePantryItem: async (id: string) => {
+        const { user } = get();
+        if (!user) {
+            // Fallback for offline mode
+            set({ pantryItems: get().pantryItems.filter((p: PantryItem) => p.id !== id) });
+            return;
+        }
+        try {
+            await deletePantryItemFromFirebase(user.id, id);
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error removing pantry item:', error);
+            // Fallback: remove locally if Firebase fails
+            set({ pantryItems: get().pantryItems.filter((p: PantryItem) => p.id !== id) });
+        }
+    },
+    clearPantry: async () => {
+        const { user } = get();
+        if (!user) {
+            // Fallback for offline mode
+            set({ pantryItems: [] });
+            return;
+        }
+        try {
+            await clearUserPantryItems(user.id);
+            // Firebase subscription will update the local state
+        } catch (error) {
+            console.error('Error clearing pantry:', error);
+            // Fallback: clear locally if Firebase fails
+            set({ pantryItems: [] });
+        }
+    },
     saveFavorite: (recipe: Recipe) => {
         const exists = get().favorites.some((r: Recipe) => r.id === recipe.id);
         if (!exists) set({ favorites: [...get().favorites, recipe] });
@@ -265,10 +384,10 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
 export const useStore = create<StoreState>()(
     persist(storeCreator, {
         name: "crumbs-store",
-        version: 1,
+        version: 2, // Increment version due to pantry changes
         storage: createJSONStorage(() => AsyncStorage),
         partialize: (state: StoreState) => ({
-            pantryItems: state.pantryItems,
+            // pantryItems excluded - now managed through Firebase
             favorites: state.favorites,
             myRecipes: state.myRecipes,
             likedPosts: state.likedPosts,

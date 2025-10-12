@@ -7,7 +7,6 @@ import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
-import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
 import { processFoodIngredients } from "../../utils/speechUtils";
 
@@ -28,13 +27,8 @@ const quickAddItems = [
 
 export default function ManualEntry() {
     const router = useRouter();
-    const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
-    const [ingredients, setIngredients] = useState<IngredientItem[]>([
-        { id: "1", name: "Eggs", quantity: "12", category: "dairy & eggs" },
-        { id: "2", name: "Flour", quantity: "2 lbs", category: "other" },
-        { id: "3", name: "Milk", quantity: "1 gallon", category: "dairy & eggs" },
-        { id: "4", name: "Sugar", quantity: "1 lb", category: "other" },
-    ]);
+    const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
+    const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [isCategorizingIngredient, setIsCategorizingIngredient] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -111,21 +105,24 @@ export default function ManualEntry() {
         ]);
     };
 
-    const handleAddToPantry = () => {
-        // Convert ingredients to pantry items and add them
-        ingredients.forEach((ingredient) => {
-            const pantryItem: PantryItem = {
+    const handleAddToPantry = async () => {
+        try {
+            // Convert ingredients to pantry items
+            const pantryItems = ingredients.map((ingredient) => ({
                 id: `pantry-${ingredient.id}`,
                 name: ingredient.name,
                 quantity: ingredient.quantity,
                 category: ingredient.category,
                 addedAt: new Date().toISOString(),
                 imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-            };
-            addPantryItem(pantryItem);
-        });
+            }));
 
-        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => router.back() }]);
+            // Add all items at once
+            await addBatchPantryItems(pantryItems);
+            Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => router.back() }]);
+        } catch (error) {
+            Alert.alert("Error", "Failed to add items to pantry. Please try again.");
+        }
     };
 
     return (

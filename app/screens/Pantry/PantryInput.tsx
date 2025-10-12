@@ -6,7 +6,6 @@ import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
-import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
 import { processFoodIngredients } from "../../utils/speechUtils";
 
@@ -19,15 +18,15 @@ interface IngredientItem {
 
 const quickAddItems = [
     { name: "Salt", color: "#FF6B35" },
-    { name: "Pepper", color: "#FF6B35" },
-    { name: "Olive Oil", color: "#FF6B35" },
-    { name: "Butter", color: "#FF6B35" },
-    { name: "Garlic", color: "#FF6B35" },
+    { name: "Pepper", color: "#8B5A3C" },
+    { name: "Olive Oil", color: "#D4A574" },
+    { name: "Butter", color: "#F4C430" },
+    { name: "Garlic", color: "#E8E8E8" },
 ];
 
 export default function PantryInput() {
     const router = useRouter();
-    const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
+    const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
     const pantryItems = useStore((s: StoreState) => s.pantryItems);
     const generateRecipeMock = useStore((s: StoreState) => s.generateRecipeMock);
     const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
@@ -104,26 +103,31 @@ export default function PantryInput() {
         }
     };
 
-    const handleAddToPantry = () => {
+    const handleAddToPantry = async () => {
         if (ingredients.length === 0) {
             Alert.alert("No Items", "Please add some ingredients first.");
             return;
         }
 
-        // Convert ingredients to pantry items and add them
-        ingredients.forEach((ingredient) => {
-            const pantryItem: PantryItem = {
+        setLoading(true);
+        try {
+            // Convert ingredients to pantry items and add them
+            const pantryItems = ingredients.map((ingredient) => ({
                 id: `pantry-${ingredient.id}`,
                 name: ingredient.name,
                 quantity: ingredient.quantity,
                 category: ingredient.category,
                 addedAt: new Date().toISOString(),
                 imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-            };
-            addPantryItem(pantryItem);
-        });
+            }));
 
-        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
+            await addBatchPantryItems(pantryItems);
+            Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
+        } catch (error) {
+            Alert.alert("Error", "Failed to add items to pantry. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleGenerateRecipe = async () => {
@@ -132,36 +136,42 @@ export default function PantryInput() {
             return;
         }
 
-        // Add current ingredients to pantry first
-        if (ingredients.length > 0) {
-            ingredients.forEach((ingredient) => {
-                const pantryItem: PantryItem = {
+        setLoading(true);
+        try {
+            // Add current ingredients to pantry first if there are any
+            if (ingredients.length > 0) {
+                const pantryItemsToAdd = ingredients.map((ingredient) => ({
                     id: `pantry-${ingredient.id}`,
                     name: ingredient.name,
                     quantity: ingredient.quantity,
                     category: ingredient.category,
                     addedAt: new Date().toISOString(),
                     imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-                };
-                addPantryItem(pantryItem);
-            });
-        }
+                }));
 
-        setLoading(true);
-        try {
-            const recipe = await generateRecipeMock(
-                pantryItems.concat(
+                await addBatchPantryItems(pantryItemsToAdd);
+            }
+
+            // Use current pantry items for recipe generation
+            const allPantryItems = ingredients.length > 0 
+                ? pantryItems.concat(
                     ingredients.map((ing) => ({
                         id: ing.id,
                         name: ing.name,
                         quantity: ing.quantity,
                         category: ing.category,
+                        addedAt: new Date().toISOString(),
+                        imageUrl: generateFoodImage(ing.name, { width: 200, height: 200 }),
                     }))
                 )
-            );
+                : pantryItems;
+
+            const recipe = await generateRecipeMock(allPantryItems);
             // Using imperative navigation because recipe id is only known after async call
             router.push({ pathname: "./RecipeDetail", params: { id: recipe.id } });
             setIngredients([]); // Clear ingredients after generating recipe
+        } catch (error) {
+            Alert.alert("Error", "Failed to generate recipe. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -184,11 +194,11 @@ export default function PantryInput() {
                     <Text style={styles.sectionTitle}>Input Methods</Text>
                     <View style={styles.actionsRow}>
                         <TouchableOpacity onPress={openCamera} style={styles.tool}>
-                            <Ionicons name="camera" size={24} color={colors.textSecondary} />
+                            <Ionicons name="camera" size={32} color={colors.accent} />
                             <Text style={styles.toolLabel}>Camera</Text>
                         </TouchableOpacity>
                         <View style={styles.tool}>
-                            <VoiceInputButton onTranscript={handleVoiceTranscript} size={24} color={colors.textSecondary} />
+                            <VoiceInputButton onTranscript={handleVoiceTranscript} size={32} color={colors.accent} />
                             <Text style={styles.toolLabel}>Voice</Text>
                         </View>
                     </View>
@@ -204,8 +214,8 @@ export default function PantryInput() {
                                 style={[styles.quickAddChip, { backgroundColor: item.color }]}
                                 onPress={() => handleAddIngredient(item.name)}
                             >
-                                <Text style={styles.quickAddText}>{item.name}</Text>
-                                <Ionicons name="add" size={14} color={colors.white} />
+                                <Text style={[styles.quickAddText, item.name === "Garlic" && { color: colors.textPrimary }]}>{item.name}</Text>
+                                <Ionicons name="add" size={16} color={item.name === "Garlic" ? colors.textPrimary : colors.white} />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -296,45 +306,54 @@ export default function PantryInput() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.neutral50,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 50,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingTop: 54,
         backgroundColor: colors.white,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
     },
     backButton: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         justifyContent: "center",
         alignItems: "center",
+        borderRadius: 22,
+        backgroundColor: colors.neutral100,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: "600",
+        fontSize: 20,
+        fontWeight: "700",
         color: colors.textPrimary,
     },
     placeholder: {
-        width: 40,
+        width: 44,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        paddingTop: 20,
     },
     section: {
-        marginVertical: 16,
+        marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 18,
+        fontWeight: "700",
         color: colors.textPrimary,
-        marginBottom: 12,
+        marginBottom: 16,
+        letterSpacing: -0.5,
     },
     actionsRow: {
         flexDirection: "row",
@@ -342,119 +361,180 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     tool: {
-        backgroundColor: colors.neutral200,
-        padding: 12,
-        borderRadius: 12,
+        backgroundColor: colors.white,
+        padding: 20,
+        borderRadius: 16,
         alignItems: "center",
+        justifyContent: "center",
         flex: 1,
-        gap: 4,
+        gap: 12,
+        minHeight: 100,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     toolLabel: {
-        fontSize: 12,
-        color: colors.textMuted,
-        fontWeight: "500",
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: "600",
+        textAlign: "center",
     },
     ingredientItem: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        backgroundColor: colors.neutral50,
-        borderRadius: 12,
-        marginBottom: 8,
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        marginBottom: 12,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     ingredientInfo: {
         flex: 1,
     },
     ingredientName: {
         fontSize: 16,
-        fontWeight: "500",
+        fontWeight: "600",
         color: colors.textPrimary,
-        marginBottom: 2,
+        marginBottom: 4,
     },
     ingredientQuantity: {
         fontSize: 14,
         color: colors.textMuted,
+        fontWeight: "500",
     },
     ingredientActions: {
         flexDirection: "row",
         gap: 8,
     },
     actionButton: {
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
         justifyContent: "center",
         alignItems: "center",
+        borderRadius: 20,
+        backgroundColor: colors.neutral100,
     },
     quickAddContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        gap: 12,
     },
     quickAddChip: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 4,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 24,
+        gap: 8,
+        elevation: 1,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        minHeight: 44,
     },
     quickAddText: {
         color: colors.white,
-        fontSize: 12,
-        fontWeight: "500",
+        fontSize: 14,
+        fontWeight: "600",
     },
     addNewContainer: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 12,
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 4,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     addNewInput: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         fontSize: 16,
+        color: colors.textPrimary,
     },
     addNewButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: colors.accent,
         justifyContent: "center",
         alignItems: "center",
+        margin: 4,
+        elevation: 2,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
     },
     footer: {
-        padding: 16,
-        paddingBottom: 32,
-        gap: 12,
+        padding: 20,
+        paddingBottom: 36,
+        gap: 16,
+        backgroundColor: colors.white,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.border,
+        elevation: 8,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     addToPantryButton: {
         backgroundColor: colors.success,
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderRadius: 16,
+        paddingVertical: 18,
         alignItems: "center",
+        elevation: 3,
+        shadowColor: colors.success,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
     },
     addToPantryText: {
         color: colors.white,
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: "700",
+        letterSpacing: 0.5,
     },
     generateButton: {
         backgroundColor: colors.accent,
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderRadius: 16,
+        paddingVertical: 18,
         alignItems: "center",
+        elevation: 3,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
     },
     generateButtonDisabled: {
         opacity: 0.6,
+        elevation: 1,
     },
     generateButtonText: {
         color: colors.white,
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: "700",
+        letterSpacing: 0.5,
     },
 });
