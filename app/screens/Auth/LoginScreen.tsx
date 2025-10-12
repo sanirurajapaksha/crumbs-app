@@ -8,7 +8,6 @@ import { Ionicons } from "@expo/vector-icons";
 // TODO: Generate typed routes (npx expo-router generate) then remove `as any` casts across Link hrefs.
 export default function LoginScreen() {
     const login = useStore((s: StoreState) => s.login);
-    const resetPassword = useStore((s: StoreState) => s.resetPassword);
     const authLoading = useStore((s: StoreState) => s.authLoading);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
