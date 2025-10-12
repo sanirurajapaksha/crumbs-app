@@ -6,73 +6,42 @@ import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
+import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
-import { processFoodIngredients } from "../../utils/speechUtils";
-
-interface IngredientItem {
-    id: string;
-    name: string;
-    quantity?: string;
-    category?: string;
-}
-
-const quickAddItems = [
-    { name: "Salt", color: "#FF6B35" },
-    { name: "Pepper", color: "#8B5A3C" },
-    { name: "Olive Oil", color: "#D4A574" },
-    { name: "Butter", color: "#F4C430" },
-    { name: "Garlic", color: "#E8E8E8" },
-];
-
+import {
+    addIngredient,
+    handleDeleteIngredient,
+    handleEditIngredient,
+    handleSaveEditedIngredient,
+    handleVoiceTranscript,
+    quickAddItems
+} from "../../utils/ingredientUtils";
 export default function PantryInput() {
     const router = useRouter();
     const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
     const pantryItems = useStore((s: StoreState) => s.pantryItems);
     const generateRecipeMock = useStore((s: StoreState) => s.generateRecipeMock);
-    const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
+    const [ingredients, setIngredients] = useState<PantryItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [loading, setLoading] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
+    const [editingIngredient, setEditingIngredient] = useState<PantryItem | null>(null);
 
-    const handleAddIngredient = (name: string) => {
-        if (name.trim()) {
-            const newItem: IngredientItem = {
-                id: `${Date.now()}-${Math.random()}`,
-                name: name.trim(),
-                quantity: "1",
-                category: "other",
-            };
-            setIngredients((prev) => [...prev, newItem]);
-            setNewIngredient("");
-        }
+    const handleAddIngredient = async (name: string) => {
+        await addIngredient(name, ingredients, setIngredients);
+        setNewIngredient("");
     };
 
-    const handleEditIngredient = (id: string) => {
-        const ingredient = ingredients.find((item) => item.id === id);
-        if (ingredient) {
-            setEditingIngredient(ingredient);
-            setEditModalVisible(true);
-        }
+    const handleEditIngredientWrapper = (id: string) => {
+        handleEditIngredient(id, ingredients, setEditingIngredient, setEditModalVisible);
     };
 
-    const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
-        setIngredients((prev) => prev.map((item) => (item.id === updatedIngredient.id ? updatedIngredient : item)));
-        setEditModalVisible(false);
-        setEditingIngredient(null);
+    const handleSaveEditedIngredientWrapper = (updatedIngredient: PantryItem) => {
+        handleSaveEditedIngredient(updatedIngredient, setIngredients, setEditModalVisible, setEditingIngredient);
     };
 
-    const handleDeleteIngredient = (id: string) => {
-        Alert.alert("Delete Ingredient", "Are you sure you want to remove this ingredient?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => {
-                    setIngredients((prev) => prev.filter((item) => item.id !== id));
-                },
-            },
-        ]);
+    const handleDeleteIngredientWrapper = (id: string) => {
+        handleDeleteIngredient(id, setIngredients);
     };
 
     const openCamera = () => {
@@ -80,50 +49,24 @@ export default function PantryInput() {
         router.push("./CameraScreen");
     };
 
-    const handleVoiceTranscript = (text: string) => {
-        // Process transcript to extract only food ingredients and remove duplicates
-        const foodIngredients = processFoodIngredients(text);
-
-        // Get existing ingredient names for duplicate checking
-        const existingNames = ingredients.map((item) => item.name.toLowerCase());
-
-        // Filter out duplicates
-        const newIngredients = foodIngredients.filter((name) => !existingNames.includes(name.toLowerCase()));
-
-        if (newIngredients.length === 0) {
-            Alert.alert("No New Ingredients", "All mentioned items are already in your list or were filtered out.", [{ text: "OK" }]);
-            return;
-        }
-
-        // Add each unique food ingredient
-        newIngredients.forEach((ing) => handleAddIngredient(ing));
-
-        if (newIngredients.length > 0) {
-            Alert.alert("Voice Input", `Added ${newIngredients.length} food ingredient(s): ${newIngredients.join(", ")}`, [{ text: "OK" }]);
-        }
+    const handleVoiceTranscriptWrapper = (text: string) => {
+        handleVoiceTranscript(text, ingredients, handleAddIngredient);
     };
 
     const handleAddToPantry = async () => {
-        if (ingredients.length === 0) {
-            Alert.alert("No Items", "Please add some ingredients first.");
-            return;
-        }
-
         setLoading(true);
         try {
-            // Convert ingredients to pantry items and add them
+            // Add ingredients directly to pantry with additional metadata
             const pantryItems = ingredients.map((ingredient) => ({
+                ...ingredient,
                 id: `pantry-${ingredient.id}`,
-                name: ingredient.name,
-                quantity: ingredient.quantity,
-                category: ingredient.category,
                 addedAt: new Date().toISOString(),
                 imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
             }));
-
             await addBatchPantryItems(pantryItems);
             Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
         } catch (error) {
+            console.error("[PantryInput] Error adding to pantry:", error);
             Alert.alert("Error", "Failed to add items to pantry. Please try again.");
         } finally {
             setLoading(false);
@@ -141,14 +84,11 @@ export default function PantryInput() {
             // Add current ingredients to pantry first if there are any
             if (ingredients.length > 0) {
                 const pantryItemsToAdd = ingredients.map((ingredient) => ({
+                    ...ingredient,
                     id: `pantry-${ingredient.id}`,
-                    name: ingredient.name,
-                    quantity: ingredient.quantity,
-                    category: ingredient.category,
                     addedAt: new Date().toISOString(),
                     imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
                 }));
-
                 await addBatchPantryItems(pantryItemsToAdd);
             }
 
@@ -171,6 +111,7 @@ export default function PantryInput() {
             router.push({ pathname: "./RecipeDetail", params: { id: recipe.id } });
             setIngredients([]); // Clear ingredients after generating recipe
         } catch (error) {
+            console.error("[PantryInput] Error generating recipe:", error);
             Alert.alert("Error", "Failed to generate recipe. Please try again.");
         } finally {
             setLoading(false);
@@ -198,7 +139,7 @@ export default function PantryInput() {
                             <Text style={styles.toolLabel}>Camera</Text>
                         </TouchableOpacity>
                         <View style={styles.tool}>
-                            <VoiceInputButton onTranscript={handleVoiceTranscript} size={32} color={colors.accent} />
+                            <VoiceInputButton onTranscript={handleVoiceTranscriptWrapper} size={32} color={colors.accent} />
                             <Text style={styles.toolLabel}>Voice</Text>
                         </View>
                     </View>
@@ -260,10 +201,10 @@ export default function PantryInput() {
                                     {ingredient.quantity && <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>}
                                 </View>
                                 <View style={styles.ingredientActions}>
-                                    <TouchableOpacity onPress={() => handleEditIngredient(ingredient.id)} style={styles.actionButton}>
+                                    <TouchableOpacity onPress={() => handleEditIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="edit" size={18} color={colors.textMuted} />
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDeleteIngredient(ingredient.id)} style={styles.actionButton}>
+                                    <TouchableOpacity onPress={() => handleDeleteIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="delete" size={18} color={colors.danger} />
                                     </TouchableOpacity>
                                 </View>
@@ -297,7 +238,7 @@ export default function PantryInput() {
                     setEditModalVisible(false);
                     setEditingIngredient(null);
                 }}
-                onSave={handleSaveEditedIngredient}
+                onSave={handleSaveEditedIngredientWrapper}
             />
         </View>
     );
