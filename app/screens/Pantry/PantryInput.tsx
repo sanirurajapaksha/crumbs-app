@@ -1,7 +1,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { DuplicateResolutionModal, ResolutionDecision } from "../../components/DuplicateResolutionModal";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
@@ -163,7 +163,11 @@ export default function PantryInput() {
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={0}
+        >
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -173,7 +177,12 @@ export default function PantryInput() {
                 <View style={styles.placeholder} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.scrollContentContainer}
+            >
                 {/* Input Methods Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Input Methods</Text>
@@ -296,7 +305,7 @@ export default function PantryInput() {
                     setLoading(false);
                 }}
             />
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -341,6 +350,9 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 20,
         paddingTop: 20,
+    },
+    scrollContentContainer: {
+        paddingBottom: 100, // Extra padding for keyboard
     },
     section: {
         marginBottom: 24,
