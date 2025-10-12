@@ -2,130 +2,78 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { categorizeIngredient } from "../../api/groqApi";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
-import { processFoodIngredients } from "../../utils/speechUtils";
-
-interface IngredientItem {
-    id: string;
-    name: string;
-    quantity?: string;
-    category?: string;
-}
-
-const quickAddItems = [
-    { name: "Salt", color: "#FF6B35" },
-    { name: "Pepper", color: "#FF6B35" },
-    { name: "Olive Oil", color: "#FF6B35" },
-    { name: "Butter", color: "#FF6B35" },
-    { name: "Garlic", color: "#FF6B35" },
-];
+import {
+    createIngredientItem,
+    handleDeleteIngredient,
+    handleEditIngredient,
+    handleSaveEditedIngredient,
+    handleVoiceTranscript,
+    quickAddItems
+} from "../../utils/ingredientUtils";
 
 export default function ManualEntry() {
     const router = useRouter();
-    const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
-    const [ingredients, setIngredients] = useState<IngredientItem[]>([
-        { id: "1", name: "Eggs", quantity: "12", category: "dairy & eggs" },
-        { id: "2", name: "Flour", quantity: "2 lbs", category: "other" },
-        { id: "3", name: "Milk", quantity: "1 gallon", category: "dairy & eggs" },
-        { id: "4", name: "Sugar", quantity: "1 lb", category: "other" },
-    ]);
+    const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
+    const [ingredients, setIngredients] = useState<PantryItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [isCategorizingIngredient, setIsCategorizingIngredient] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
+    const [editingIngredient, setEditingIngredient] = useState<PantryItem | null>(null);
 
     const handleAddIngredient = async (name: string) => {
         if (name.trim()) {
             console.log(`[ManualEntry] Adding ingredient: "${name.trim()}"`);
             setIsCategorizingIngredient(true);
             try {
-                // Get AI-generated category
-                console.log("[ManualEntry] Calling categorizeIngredient...");
-                const category = await categorizeIngredient(name.trim());
-                console.log(`[ManualEntry] Received category: "${category}"`);
-
-                const newItem: IngredientItem = {
-                    id: `${Date.now()}-${Math.random()}`,
-                    name: name.trim(),
-                    quantity: "1",
-                    category: category,
-                };
+                const newItem = await createIngredientItem(name.trim(), true);
                 setIngredients((prev) => [...prev, newItem]);
                 setNewIngredient("");
-
-                // Show success message with category (always show for debugging)
-                Alert.alert("Ingredient Added", `"${name.trim()}" has been categorized as "${category}" by AI.`, [{ text: "OK" }], {
-                    cancelable: true,
-                });
             } catch (error) {
-                console.error("[ManualEntry] Error categorizing ingredient:", error);
-                // Fallback to default category if API fails
-                const newItem: IngredientItem = {
-                    id: `${Date.now()}-${Math.random()}`,
-                    name: name.trim(),
-                    quantity: "1",
-                    category: "other",
-                };
-                setIngredients((prev) => [...prev, newItem]);
-                setNewIngredient("");
-
-                Alert.alert("Ingredient Added", `"${name.trim()}" has been added with default category (AI categorization failed).`, [
-                    { text: "OK" },
-                ]);
+                console.error("[ManualEntry] Error creating ingredient:", error);
+                Alert.alert("Error", "Failed to add ingredient. Please try again.");
             } finally {
                 setIsCategorizingIngredient(false);
             }
         }
     };
 
-    const handleEditIngredient = (id: string) => {
-        const ingredient = ingredients.find((item) => item.id === id);
-        if (ingredient) {
-            setEditingIngredient(ingredient);
-            setEditModalVisible(true);
-        }
+    const handleEditIngredientWrapper = (id: string) => {
+        handleEditIngredient(id, ingredients, setEditingIngredient, setEditModalVisible);
     };
 
-    const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
-        setIngredients((prev) => prev.map((item) => (item.id === updatedIngredient.id ? updatedIngredient : item)));
-        setEditModalVisible(false);
-        setEditingIngredient(null);
+    const handleSaveEditedIngredientWrapper = (updatedIngredient: PantryItem) => {
+        handleSaveEditedIngredient(updatedIngredient, setIngredients, setEditModalVisible, setEditingIngredient);
     };
 
-    const handleDeleteIngredient = (id: string) => {
-        Alert.alert("Delete Ingredient", "Are you sure you want to remove this ingredient?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => {
-                    setIngredients((prev) => prev.filter((item) => item.id !== id));
-                },
-            },
-        ]);
+    const handleDeleteIngredientWrapper = (id: string) => {
+        handleDeleteIngredient(id, setIngredients);
     };
 
-    const handleAddToPantry = () => {
-        // Convert ingredients to pantry items and add them
-        ingredients.forEach((ingredient) => {
-            const pantryItem: PantryItem = {
+    const handleAddToPantry = async () => {
+        try {
+            // Convert ingredients to pantry items
+            const pantryItems = ingredients.map((ingredient) => ({
                 id: `pantry-${ingredient.id}`,
                 name: ingredient.name,
                 quantity: ingredient.quantity,
                 category: ingredient.category,
                 addedAt: new Date().toISOString(),
                 imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-            };
-            addPantryItem(pantryItem);
-        });
+            }));
 
-        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => router.back() }]);
+            // Add all items at once
+            await addBatchPantryItems(pantryItems);
+            Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => router.back() }]);
+        } catch (error) {
+            console.error("[ManualEntry] Error adding to pantry:", error);
+            Alert.alert("Error", "Failed to add items to pantry. Please try again.");
+        }
     };
 
     return (
@@ -153,10 +101,10 @@ export default function ManualEntry() {
                                 </View>
                             </View>
                             <View style={styles.ingredientActions}>
-                                <TouchableOpacity onPress={() => handleEditIngredient(ingredient.id)} style={styles.actionButton}>
+                                <TouchableOpacity onPress={() => handleEditIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                     <MaterialIcons name="edit" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDeleteIngredient(ingredient.id)} style={styles.actionButton}>
+                                <TouchableOpacity onPress={() => handleDeleteIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                     <MaterialIcons name="delete" size={16} color={colors.textMuted} />
                                 </TouchableOpacity>
                             </View>
@@ -194,34 +142,7 @@ export default function ManualEntry() {
                             editable={!isCategorizingIngredient}
                         />
                         <VoiceInputButton
-                            onTranscript={(text) => {
-                                // Process transcript to extract only food ingredients and remove duplicates
-                                const foodIngredients = processFoodIngredients(text);
-
-                                // Get existing ingredient names for duplicate checking
-                                const existingNames = ingredients.map((item) => item.name.toLowerCase());
-
-                                // Filter out duplicates
-                                const newIngredients = foodIngredients.filter((name) => !existingNames.includes(name.toLowerCase()));
-
-                                if (newIngredients.length === 0) {
-                                    Alert.alert("No New Ingredients", "All mentioned items are already in your list or were filtered out.", [
-                                        { text: "OK" },
-                                    ]);
-                                    return;
-                                }
-
-                                // Add each unique food ingredient
-                                newIngredients.forEach((ing) => handleAddIngredient(ing));
-
-                                if (newIngredients.length > 0) {
-                                    Alert.alert(
-                                        "Ingredients Added",
-                                        `Added ${newIngredients.length} food ingredient(s): ${newIngredients.join(", ")}`,
-                                        [{ text: "OK" }]
-                                    );
-                                }
-                            }}
+                            onTranscript={(text) => handleVoiceTranscript(text, ingredients, handleAddIngredient)}
                             disabled={isCategorizingIngredient}
                             color={colors.accent}
                         />
@@ -256,7 +177,7 @@ export default function ManualEntry() {
                     setEditModalVisible(false);
                     setEditingIngredient(null);
                 }}
-                onSave={handleSaveEditedIngredient}
+                onSave={handleSaveEditedIngredientWrapper}
             />
         </View>
     );

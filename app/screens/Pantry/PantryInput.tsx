@@ -1,79 +1,53 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { DuplicateResolutionModal, ResolutionDecision } from "../../components/DuplicateResolutionModal";
 import { EditIngredientModal } from "../../components/EditIngredientModal";
 import { VoiceInputButton } from "../../components/VoiceInputButton";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
 import { PantryItem } from "../../types";
 import { generateFoodImage } from "../../utils/imageUtils";
-import { processFoodIngredients } from "../../utils/speechUtils";
-
-interface IngredientItem {
-    id: string;
-    name: string;
-    quantity?: string;
-    category?: string;
-}
-
-const quickAddItems = [
-    { name: "Salt", color: "#FF6B35" },
-    { name: "Pepper", color: "#FF6B35" },
-    { name: "Olive Oil", color: "#FF6B35" },
-    { name: "Butter", color: "#FF6B35" },
-    { name: "Garlic", color: "#FF6B35" },
-];
-
+import {
+    addIngredient,
+    handleDeleteIngredient,
+    handleEditIngredient,
+    handleSaveEditedIngredient,
+    handleVoiceTranscript,
+    quickAddItems
+} from "../../utils/ingredientUtils";
 export default function PantryInput() {
     const router = useRouter();
-    const addPantryItem = useStore((s: StoreState) => s.addPantryItem);
-    const pantryItems = useStore((s: StoreState) => s.pantryItems);
-    const generateRecipeMock = useStore((s: StoreState) => s.generateRecipeMock);
-    const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
+    const addBatchPantryItems = useStore((s: StoreState) => s.addBatchPantryItems);
+    const addBatchPantryItemsWithDuplicateCheck = useStore((s: StoreState) => s.addBatchPantryItemsWithDuplicateCheck);
+    const mergePantryItems = useStore((s: StoreState) => s.mergePantryItems);
+    const removePantryItem = useStore((s: StoreState) => s.removePantryItem);
+    
+    const [ingredients, setIngredients] = useState<PantryItem[]>([]);
     const [newIngredient, setNewIngredient] = useState("");
     const [loading, setLoading] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
+    const [editingIngredient, setEditingIngredient] = useState<PantryItem | null>(null);
+    const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
+    const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
+    const [unmatchedItems, setUnmatchedItems] = useState<PantryItem[]>([]);
 
-    const handleAddIngredient = (name: string) => {
-        if (name.trim()) {
-            const newItem: IngredientItem = {
-                id: `${Date.now()}-${Math.random()}`,
-                name: name.trim(),
-                quantity: "1",
-                category: "other",
-            };
-            setIngredients((prev) => [...prev, newItem]);
-            setNewIngredient("");
-        }
+    const handleAddIngredient = async (name: string) => {
+        await addIngredient(name, ingredients, setIngredients);
+        setNewIngredient("");
     };
 
-    const handleEditIngredient = (id: string) => {
-        const ingredient = ingredients.find((item) => item.id === id);
-        if (ingredient) {
-            setEditingIngredient(ingredient);
-            setEditModalVisible(true);
-        }
+    const handleEditIngredientWrapper = (id: string) => {
+        handleEditIngredient(id, ingredients, setEditingIngredient, setEditModalVisible);
     };
 
-    const handleSaveEditedIngredient = (updatedIngredient: IngredientItem) => {
-        setIngredients((prev) => prev.map((item) => (item.id === updatedIngredient.id ? updatedIngredient : item)));
-        setEditModalVisible(false);
-        setEditingIngredient(null);
+    const handleSaveEditedIngredientWrapper = (updatedIngredient: PantryItem) => {
+        handleSaveEditedIngredient(updatedIngredient, setIngredients, setEditModalVisible, setEditingIngredient);
     };
 
-    const handleDeleteIngredient = (id: string) => {
-        Alert.alert("Delete Ingredient", "Are you sure you want to remove this ingredient?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => {
-                    setIngredients((prev) => prev.filter((item) => item.id !== id));
-                },
-            },
-        ]);
+    const handleDeleteIngredientWrapper = (id: string) => {
+        handleDeleteIngredient(id, setIngredients);
     };
 
     const openCamera = () => {
@@ -81,94 +55,119 @@ export default function PantryInput() {
         router.push("./CameraScreen");
     };
 
-    const handleVoiceTranscript = (text: string) => {
-        // Process transcript to extract only food ingredients and remove duplicates
-        const foodIngredients = processFoodIngredients(text);
-
-        // Get existing ingredient names for duplicate checking
-        const existingNames = ingredients.map((item) => item.name.toLowerCase());
-
-        // Filter out duplicates
-        const newIngredients = foodIngredients.filter((name) => !existingNames.includes(name.toLowerCase()));
-
-        if (newIngredients.length === 0) {
-            Alert.alert("No New Ingredients", "All mentioned items are already in your list or were filtered out.", [{ text: "OK" }]);
-            return;
-        }
-
-        // Add each unique food ingredient
-        newIngredients.forEach((ing) => handleAddIngredient(ing));
-
-        if (newIngredients.length > 0) {
-            Alert.alert("Voice Input", `Added ${newIngredients.length} food ingredient(s): ${newIngredients.join(", ")}`, [{ text: "OK" }]);
-        }
+    const handleVoiceTranscriptWrapper = (text: string) => {
+        handleVoiceTranscript(text, ingredients, handleAddIngredient);
     };
 
-    const handleAddToPantry = () => {
-        if (ingredients.length === 0) {
-            Alert.alert("No Items", "Please add some ingredients first.");
-            return;
-        }
-
-        // Convert ingredients to pantry items and add them
-        ingredients.forEach((ingredient) => {
-            const pantryItem: PantryItem = {
-                id: `pantry-${ingredient.id}`,
-                name: ingredient.name,
-                quantity: ingredient.quantity,
-                category: ingredient.category,
-                addedAt: new Date().toISOString(),
-                imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-            };
-            addPantryItem(pantryItem);
-        });
-
-        Alert.alert("Success!", `Added ${ingredients.length} items to your pantry.`, [{ text: "OK", onPress: () => setIngredients([]) }]);
-    };
-
-    const handleGenerateRecipe = async () => {
-        if (ingredients.length === 0 && pantryItems.length === 0) {
-            Alert.alert("No Items", "Please add some ingredients to generate a recipe.");
-            return;
-        }
-
-        // Add current ingredients to pantry first
-        if (ingredients.length > 0) {
-            ingredients.forEach((ingredient) => {
-                const pantryItem: PantryItem = {
-                    id: `pantry-${ingredient.id}`,
-                    name: ingredient.name,
-                    quantity: ingredient.quantity,
-                    category: ingredient.category,
-                    addedAt: new Date().toISOString(),
-                    imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
-                };
-                addPantryItem(pantryItem);
-            });
-        }
-
+    const handleAddToPantry = async () => {
         setLoading(true);
         try {
-            const recipe = await generateRecipeMock(
-                pantryItems.concat(
-                    ingredients.map((ing) => ({
-                        id: ing.id,
-                        name: ing.name,
-                        quantity: ing.quantity,
-                        category: ing.category,
-                    }))
-                )
-            );
-            // Using imperative navigation because recipe id is only known after async call
-            router.push({ pathname: "./RecipeDetail", params: { id: recipe.id } });
-            setIngredients([]); // Clear ingredients after generating recipe
+            // Prepare ingredients with metadata
+            const pantryItems = ingredients.map((ingredient) => ({
+                ...ingredient,
+                id: `pantry-${ingredient.id}`,
+                addedAt: new Date().toISOString(),
+                imageUrl: generateFoodImage(ingredient.name, { width: 200, height: 200 }),
+            }));
+
+            // Check for duplicates using Gemini AI
+            console.log('🔍 Checking for duplicates...');
+            const duplicateResult = await addBatchPantryItemsWithDuplicateCheck(pantryItems);
+
+            if (duplicateResult.hasDuplicates && duplicateResult.matches.length > 0) {
+                // Show duplicate resolution modal
+                setDuplicateMatches(duplicateResult.matches);
+                setUnmatchedItems(duplicateResult.unmatchedNewItems);
+                setDuplicateModalVisible(true);
+            } else {
+                // No duplicates, add all items directly
+                await addBatchPantryItems(pantryItems);
+                Alert.alert(
+                    "Success!", 
+                    `Added ${pantryItems.length} ${pantryItems.length === 1 ? 'item' : 'items'} to your pantry.`, 
+                    [{ text: "OK", onPress: () => setIngredients([]) }]
+                );
+            }
+        } catch (error) {
+            console.error("[PantryInput] Error adding to pantry:", error);
+            Alert.alert("Error", "Failed to add items to pantry. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
+    const handleDuplicateResolution = async (resolutions: ResolutionDecision[]) => {
+        setDuplicateModalVisible(false);
+        setLoading(true);
+        
+        try {
+            let mergedCount = 0;
+            let addedCount = 0;
+            let replacedCount = 0;
+
+            // Process each resolution
+            for (const resolution of resolutions) {
+                const { match, action } = resolution;
+
+                switch (action) {
+                    case 'merge':
+                        // Merge existing item with new item
+                        await mergePantryItems(match.existingItem.id, match.newItem);
+                        mergedCount++;
+                        break;
+                    
+                    case 'replace':
+                        // Remove existing and add new
+                        await removePantryItem(match.existingItem.id);
+                        await addBatchPantryItems([match.newItem]);
+                        replacedCount++;
+                        break;
+                    
+                    case 'separate':
+                        // Add new item as separate
+                        await addBatchPantryItems([match.newItem]);
+                        addedCount++;
+                        break;
+                    
+                    case 'skip':
+                        // Do nothing
+                        break;
+                }
+            }
+
+            // Add unmatched items
+            if (unmatchedItems.length > 0) {
+                await addBatchPantryItems(unmatchedItems);
+                addedCount += unmatchedItems.length;
+            }
+
+            // Build success message
+            const messages = [];
+            if (mergedCount > 0) messages.push(`${mergedCount} merged`);
+            if (replacedCount > 0) messages.push(`${replacedCount} replaced`);
+            if (addedCount > 0) messages.push(`${addedCount} added`);
+
+            Alert.alert(
+                "Success!", 
+                `Items updated: ${messages.join(', ')}`,
+                [{ text: "OK", onPress: () => setIngredients([]) }]
+            );
+        } catch (error) {
+            console.error("[PantryInput] Error resolving duplicates:", error);
+            Alert.alert("Error", "Failed to update pantry. Please try again.");
+        } finally {
+            setLoading(false);
+            setDuplicateMatches([]);
+            setUnmatchedItems([]);
+        }
+    };
+
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={0}
+        >
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -178,17 +177,22 @@ export default function PantryInput() {
                 <View style={styles.placeholder} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.scrollContentContainer}
+            >
                 {/* Input Methods Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Input Methods</Text>
                     <View style={styles.actionsRow}>
                         <TouchableOpacity onPress={openCamera} style={styles.tool}>
-                            <Ionicons name="camera" size={24} color={colors.textSecondary} />
+                            <Ionicons name="camera" size={32} color={colors.accent} />
                             <Text style={styles.toolLabel}>Camera</Text>
                         </TouchableOpacity>
                         <View style={styles.tool}>
-                            <VoiceInputButton onTranscript={handleVoiceTranscript} size={24} color={colors.textSecondary} />
+                            <VoiceInputButton onTranscript={handleVoiceTranscriptWrapper} size={32} color={colors.accent} />
                             <Text style={styles.toolLabel}>Voice</Text>
                         </View>
                     </View>
@@ -204,8 +208,8 @@ export default function PantryInput() {
                                 style={[styles.quickAddChip, { backgroundColor: item.color }]}
                                 onPress={() => handleAddIngredient(item.name)}
                             >
-                                <Text style={styles.quickAddText}>{item.name}</Text>
-                                <Ionicons name="add" size={14} color={colors.white} />
+                                <Text style={[styles.quickAddText, item.name === "Garlic" && { color: colors.textPrimary }]}>{item.name}</Text>
+                                <Ionicons name="add" size={16} color={item.name === "Garlic" ? colors.textPrimary : colors.white} />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -250,10 +254,10 @@ export default function PantryInput() {
                                     {ingredient.quantity && <Text style={styles.ingredientQuantity}>{ingredient.quantity}</Text>}
                                 </View>
                                 <View style={styles.ingredientActions}>
-                                    <TouchableOpacity onPress={() => handleEditIngredient(ingredient.id)} style={styles.actionButton}>
+                                    <TouchableOpacity onPress={() => handleEditIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="edit" size={18} color={colors.textMuted} />
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDeleteIngredient(ingredient.id)} style={styles.actionButton}>
+                                    <TouchableOpacity onPress={() => handleDeleteIngredientWrapper(ingredient.id)} style={styles.actionButton}>
                                         <MaterialIcons name="delete" size={18} color={colors.danger} />
                                     </TouchableOpacity>
                                 </View>
@@ -266,17 +270,16 @@ export default function PantryInput() {
             {/* Action Buttons */}
             <View style={styles.footer}>
                 {ingredients.length > 0 && (
-                    <TouchableOpacity style={styles.addToPantryButton} onPress={handleAddToPantry}>
-                        <Text style={styles.addToPantryText}>Add To Pantry</Text>
+                    <TouchableOpacity 
+                        style={[styles.addToPantryButton, loading && styles.buttonDisabled]} 
+                        onPress={handleAddToPantry}
+                        disabled={loading}
+                    >
+                        <Text style={styles.addToPantryText}>
+                            {loading ? "Adding..." : "Add To Pantry"}
+                        </Text>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity
-                    disabled={loading}
-                    style={[styles.generateButton, loading && styles.generateButtonDisabled]}
-                    onPress={handleGenerateRecipe}
-                >
-                    <Text style={styles.generateButtonText}>{loading ? "Generating..." : "Generate Recipe"}</Text>
-                </TouchableOpacity>
             </View>
 
             {/* Edit Ingredient Modal */}
@@ -287,54 +290,79 @@ export default function PantryInput() {
                     setEditModalVisible(false);
                     setEditingIngredient(null);
                 }}
-                onSave={handleSaveEditedIngredient}
+                onSave={handleSaveEditedIngredientWrapper}
             />
-        </View>
+
+            {/* Duplicate Resolution Modal */}
+            <DuplicateResolutionModal
+                visible={duplicateModalVisible}
+                matches={duplicateMatches}
+                onResolve={handleDuplicateResolution}
+                onCancel={() => {
+                    setDuplicateModalVisible(false);
+                    setDuplicateMatches([]);
+                    setUnmatchedItems([]);
+                    setLoading(false);
+                }}
+            />
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.neutral50,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 50,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingTop: 54,
         backgroundColor: colors.white,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.border,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
     },
     backButton: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         justifyContent: "center",
         alignItems: "center",
+        borderRadius: 22,
+        backgroundColor: colors.neutral100,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: "600",
+        fontSize: 20,
+        fontWeight: "700",
         color: colors.textPrimary,
     },
     placeholder: {
-        width: 40,
+        width: 44,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    scrollContentContainer: {
+        paddingBottom: 100, // Extra padding for keyboard
     },
     section: {
-        marginVertical: 16,
+        marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 18,
+        fontWeight: "700",
         color: colors.textPrimary,
-        marginBottom: 12,
+        marginBottom: 16,
+        letterSpacing: -0.5,
     },
     actionsRow: {
         flexDirection: "row",
@@ -342,119 +370,163 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     tool: {
-        backgroundColor: colors.neutral200,
-        padding: 12,
-        borderRadius: 12,
+        backgroundColor: colors.white,
+        padding: 20,
+        borderRadius: 16,
         alignItems: "center",
+        justifyContent: "center",
         flex: 1,
-        gap: 4,
+        gap: 12,
+        minHeight: 100,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     toolLabel: {
-        fontSize: 12,
-        color: colors.textMuted,
-        fontWeight: "500",
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: "600",
+        textAlign: "center",
     },
     ingredientItem: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        backgroundColor: colors.neutral50,
-        borderRadius: 12,
-        marginBottom: 8,
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        marginBottom: 12,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     ingredientInfo: {
         flex: 1,
     },
     ingredientName: {
         fontSize: 16,
-        fontWeight: "500",
+        fontWeight: "600",
         color: colors.textPrimary,
-        marginBottom: 2,
+        marginBottom: 4,
     },
     ingredientQuantity: {
         fontSize: 14,
         color: colors.textMuted,
+        fontWeight: "500",
     },
     ingredientActions: {
         flexDirection: "row",
         gap: 8,
     },
     actionButton: {
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
         justifyContent: "center",
         alignItems: "center",
+        borderRadius: 20,
+        backgroundColor: colors.neutral100,
     },
     quickAddContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        gap: 12,
     },
     quickAddChip: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 4,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 24,
+        gap: 8,
+        elevation: 1,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        minHeight: 44,
     },
     quickAddText: {
         color: colors.white,
-        fontSize: 12,
-        fontWeight: "500",
+        fontSize: 14,
+        fontWeight: "600",
     },
     addNewContainer: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 12,
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 4,
+        elevation: 2,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
     },
     addNewInput: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         fontSize: 16,
+        color: colors.textPrimary,
     },
     addNewButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: colors.accent,
         justifyContent: "center",
         alignItems: "center",
+        margin: 4,
+        elevation: 2,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
     },
     footer: {
-        padding: 16,
-        paddingBottom: 32,
-        gap: 12,
+        padding: 20,
+        paddingBottom: 36,
+        gap: 16,
+        backgroundColor: colors.white,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.border,
+        elevation: 8,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     addToPantryButton: {
         backgroundColor: colors.success,
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderRadius: 16,
+        paddingVertical: 18,
         alignItems: "center",
+        elevation: 3,
+        shadowColor: colors.success,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
     },
     addToPantryText: {
         color: colors.white,
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: "700",
+        letterSpacing: 0.5,
     },
-    generateButton: {
-        backgroundColor: colors.accent,
-        borderRadius: 12,
-        paddingVertical: 16,
-        alignItems: "center",
-    },
-    generateButtonDisabled: {
+    buttonDisabled: {
         opacity: 0.6,
-    },
-    generateButtonText: {
-        color: colors.white,
-        fontSize: 16,
-        fontWeight: "600",
+        elevation: 1,
     },
 });

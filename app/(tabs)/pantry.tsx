@@ -243,16 +243,26 @@ export default function PantryTab() {
         setEditModalVisible(true);
     };
 
-    const handleSaveEditedItem = (updatedItem: PantryItem) => {
-        updatePantryItem(updatedItem.id, updatedItem);
-        setEditModalVisible(false);
-        setEditingItem(null);
+    const handleSaveEditedItem = async (updatedItem: PantryItem) => {
+        try {
+            await updatePantryItem(updatedItem.id, updatedItem);
+            setEditModalVisible(false);
+            setEditingItem(null);
+        } catch (error) {
+            console.error('Error updating pantry item:', error);
+            // You might want to show an alert here
+        }
     };
 
-    const handleDeleteItem = (itemId: string) => {
-        removePantryItem(itemId);
-        setEditModalVisible(false);
-        setEditingItem(null);
+    const handleDeleteItem = async (itemId: string) => {
+        try {
+            await removePantryItem(itemId);
+            setEditModalVisible(false);
+            setEditingItem(null);
+        } catch (error) {
+            console.error('Error deleting pantry item:', error);
+            // You might want to show an alert here
+        }
     };
 
     return (

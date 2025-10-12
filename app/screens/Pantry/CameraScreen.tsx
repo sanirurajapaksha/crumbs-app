@@ -7,12 +7,13 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } fr
 import { analyzePantryItemsFromAudio, analyzePantryItemsFromImage, processDetectedItems } from '../../api/pantryAnalysis';
 import { useStore } from '../../store/useStore';
 import { colors } from '../../theme/colors';
+import { PantryItem } from '../../types';
 import { initializeAudio, RecordingState, startRecording, stopRecording } from '../../utils/audioUtils';
 import { handleError, showErrorAlert } from '../../utils/errorHandling';
 
 interface CameraScreenProps {
     onPhotoTaken?: (uri: string) => void;
-    onItemsDetected?: (items: any[]) => void;
+    onItemsDetected?: (items: PantryItem[]) => void;
 }
 
 export default function CameraScreen({ onPhotoTaken, onItemsDetected }: CameraScreenProps) {
