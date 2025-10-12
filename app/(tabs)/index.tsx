@@ -2,44 +2,19 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import HomePagePostCard from "../screens/Community/HomePagePostCard";
 import { StoreState, useStore, useUtilFunctions, UtilFunctions } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { Recipe } from "../types";
-import HomePagePostCard from "../screens/Community/HomePagePostCard";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.7;
-
-// Mock recipe data for display
-const mockRecentRecipes: Recipe[] = [
-    {
-        id: "1",
-        title: "Creamy Tomato Pasta",
-        heroImage: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800",
-        cookTimeMin: 30,
-        timingTag: "Vegetarian",
-        calories_kcal: 450,
-        protein_g: 12,
-        ingredients: [],
-        steps: [],
-    },
-    {
-        id: "2",
-        title: "Mediterranean Salad",
-        heroImage: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800",
-        cookTimeMin: 20,
-        timingTag: "Vegetarian",
-        calories_kcal: 320,
-        protein_g: 8,
-        ingredients: [],
-        steps: [],
-    },
-];
 
 export default function HomeScreen() {
     const user = useStore((s: StoreState) => s.user);
     const posts = useStore((s: StoreState) => s.communityPosts);
     const loadPosts = useStore((s: StoreState) => s.loadPosts);
+    const myRecipes = useStore((s: StoreState) => s.myRecipes);
     const loading = useUtilFunctions((state: UtilFunctions) => state.loading);
     const setLoading = useUtilFunctions((state: UtilFunctions) => state.setLoading);
 
@@ -86,25 +61,36 @@ export default function HomeScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Recents</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                        {mockRecentRecipes.map((recipe) => (
-                            <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
-                                <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
-                                <View style={styles.recipeInfo}>
-                                    <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                                    <View style={styles.recipeMeta}>
-                                        <View style={styles.metaItem}>
-                                            <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
-                                            <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
-                                        </View>
-                                        {recipe.timingTag && (
-                                            <View style={styles.tag}>
-                                                <Text style={styles.tagText}>{recipe.timingTag}</Text>
+                        {myRecipes.length > 0 ? (
+                            myRecipes.slice(0, 5).map((recipe) => (
+                                <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
+                                    <Image 
+                                        source={{ uri: recipe.heroImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800" }} 
+                                        style={styles.recipeImage} 
+                                    />
+                                    <View style={styles.recipeInfo}>
+                                        <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                                        <View style={styles.recipeMeta}>
+                                            <View style={styles.metaItem}>
+                                                <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
+                                                <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
                                             </View>
-                                        )}
+                                            {recipe.timingTag && (
+                                                <View style={styles.tag}>
+                                                    <Text style={styles.tagText}>{recipe.timingTag}</Text>
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <View style={styles.emptyRecentsContainer}>
+                                <MaterialIcons name="restaurant-menu" size={48} color={colors.textMuted} />
+                                <Text style={styles.emptyRecentsText}>No recipes yet</Text>
+                                <Text style={styles.emptyRecentsSubtext}>Generate your first recipe to see it here!</Text>
+                            </View>
+                        )}
                     </ScrollView>
                 </View>
 
@@ -262,5 +248,27 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: colors.white,
         letterSpacing: 0.5,
+    },
+    emptyRecentsContainer: {
+        width: CARD_WIDTH,
+        height: 200,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.neutral100,
+        borderRadius: 16,
+        paddingHorizontal: 20,
+        marginRight: 16,
+    },
+    emptyRecentsText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textSecondary,
+        marginTop: 12,
+    },
+    emptyRecentsSubtext: {
+        fontSize: 14,
+        color: colors.textMuted,
+        marginTop: 4,
+        textAlign: "center",
     },
 });
