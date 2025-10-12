@@ -1,12 +1,18 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { colors } from "../../theme/colors";
 import { Link } from "expo-router";
 
 export default function Slide1() {
     return (
         <View style={styles.wrapper}>
-            <View style={styles.illustration}>{/* Placeholder block for future image/illustration */}</View>
+            <View style={styles.illustration}>
+                <Image 
+                    source={require("../../../assets/images/onboarding-1.png")} 
+                    style={styles.image}
+                    resizeMode="contain"
+                />
+            </View>
             <View style={styles.card}>
                 <Text style={styles.heading}>Waste Less, Taste More</Text>
                 <Text style={styles.subtitle}>Generate delicious meals from the ingredients already in your kitchen.</Text>
@@ -32,6 +38,10 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral300, // soft green-ish placeholder
         justifyContent: "center",
         alignItems: "center",
+    },
+    image: {
+        width: "100%",
+        height: "100%",
     },
     card: {
         flex: 0.45,
