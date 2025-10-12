@@ -22,7 +22,7 @@ import {
     subscribeToPantryItems,
     updatePantryItemInFirebase
 } from "../api/pantryFirebaseApi";
-import { getCommunityPosts, postCommunityPost } from "../api/post-api";
+import { deleteCommunityPost, getCommunityPosts, postCommunityPost, updateCommunityPost } from "../api/post-api";
 import { CommunityPost, Notification, PantryItem, Recipe, User } from "../types";
 
 export interface StoreState {
@@ -63,6 +63,8 @@ export interface StoreState {
     unlikePost: (id: string) => void;
     loadPosts: () => Promise<void>;
     postCommunity: (uid: string, post: CommunityPost) => void;
+    updatePost: (uid: string, postId: string, updates: Partial<CommunityPost>) => Promise<void>;
+    deletePost: (uid: string, postId: string) => Promise<void>;
     generateRecipeMock: (pantry: PantryItem[], options?: any) => Promise<Recipe>;
     generateRecipeWithAI: (
         pantry: PantryItem[],
@@ -374,6 +376,32 @@ const storeCreator: StateCreator<StoreState> = (set: (fn: any) => void, get: () 
         const saved = await postCommunityPost(uid, post);
         set({ communityPosts: [saved, ...get().communityPosts] });
         return saved;
+    },
+    updatePost: async (uid: string, postId: string, updates: Partial<CommunityPost>) => {
+        try {
+            await updateCommunityPost(uid, postId, updates);
+            // Update local state
+            set({ 
+                communityPosts: get().communityPosts.map(post => 
+                    post.id === postId ? { ...post, ...updates } : post
+                )
+            });
+        } catch (error) {
+            console.error('Error updating post:', error);
+            throw error;
+        }
+    },
+    deletePost: async (uid: string, postId: string) => {
+        try {
+            await deleteCommunityPost(uid, postId);
+            // Update local state
+            set({ 
+                communityPosts: get().communityPosts.filter(post => post.id !== postId)
+            });
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            throw error;
+        }
     },
     generateRecipeMock: async (pantry: PantryItem[], options?: any) => {
         return generateRecipeFromPantry(pantry, options);

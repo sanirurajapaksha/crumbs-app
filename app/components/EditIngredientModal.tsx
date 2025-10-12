@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { categorizeIngredient } from '../api/groqApi';
 import { colors } from '../theme/colors';
 
@@ -48,6 +49,8 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
     const [quantity, setQuantity] = useState('');
     const [category, setCategory] = useState('other');
     const [expiryDate, setExpiryDate] = useState('');
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [datePickerDate, setDatePickerDate] = useState(new Date());
     const [isRecategorizing, setIsRecategorizing] = useState(false);
 
     useEffect(() => {
@@ -59,8 +62,10 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
             if (ingredient.expiryDate) {
                 const date = new Date(ingredient.expiryDate);
                 setExpiryDate(date.toISOString().split('T')[0]);
+                setDatePickerDate(date);
             } else {
                 setExpiryDate('');
+                setDatePickerDate(new Date());
             }
         }
     }, [ingredient]);
@@ -149,6 +154,27 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
         } finally {
             setIsRecategorizing(false);
         }
+    };
+
+    const handleDateChange = (event: any, selectedDate?: Date) => {
+        // On Android, the picker stays open, on iOS it closes automatically
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        
+        if (selectedDate) {
+            setDatePickerDate(selectedDate);
+            setExpiryDate(selectedDate.toISOString().split('T')[0]);
+        }
+    };
+
+    const handleOpenDatePicker = () => {
+        setShowDatePicker(true);
+    };
+
+    const handleClearDate = () => {
+        setExpiryDate('');
+        setDatePickerDate(new Date());
     };
 
     if (!ingredient) return null;
@@ -242,17 +268,53 @@ export const EditIngredientModal: React.FC<EditIngredientModalProps> = ({
                         {/* Expiry Date Field */}
                         <View style={styles.fieldContainer}>
                             <Text style={styles.fieldLabel}>Expiry Date (Optional)</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={expiryDate}
-                                onChangeText={setExpiryDate}
-                                placeholder="YYYY-MM-DD"
-                                placeholderTextColor={colors.textMuted}
-                            />
+                            <View style={styles.dateInputContainer}>
+                                <TouchableOpacity 
+                                    style={styles.dateButton}
+                                    onPress={handleOpenDatePicker}
+                                >
+                                    <Ionicons name="calendar-outline" size={20} color={colors.accent} />
+                                    <Text style={styles.dateButtonText}>
+                                        {expiryDate || 'Select Date'}
+                                    </Text>
+                                </TouchableOpacity>
+                                {expiryDate && (
+                                    <TouchableOpacity 
+                                        style={styles.clearDateButton}
+                                        onPress={handleClearDate}
+                                    >
+                                        <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                             <Text style={styles.fieldHint}>
-                                Format: YYYY-MM-DD (e.g., 2025-12-31)
+                                Tap the calendar icon to select a date
                             </Text>
                         </View>
+
+                        {/* Date Picker */}
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={datePickerDate}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={handleDateChange}
+                                minimumDate={new Date()}
+                                textColor={colors.textPrimary}
+                            />
+                        )}
+
+                        {/* iOS Date Picker Done Button */}
+                        {showDatePicker && Platform.OS === 'ios' && (
+                            <View style={styles.datePickerActions}>
+                                <TouchableOpacity 
+                                    style={styles.datePickerButton}
+                                    onPress={() => setShowDatePicker(false)}
+                                >
+                                    <Text style={styles.datePickerButtonText}>Done</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </ScrollView>
 
                     {/* Action Buttons */}
@@ -440,6 +502,51 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.white,
+    },
+    dateInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    dateButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: colors.white,
+    },
+    dateButtonText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        flex: 1,
+    },
+    clearDateButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    datePickerActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingTop: 12,
+        marginBottom: 8,
+    },
+    datePickerButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: colors.accent,
+    },
+    datePickerButtonText: {
         fontSize: 16,
         fontWeight: '600',
         color: colors.white,

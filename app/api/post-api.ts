@@ -1,5 +1,5 @@
+import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
 import { CommunityPost } from "../types";
 
 export async function postCommunityPost(uid: string, post: CommunityPost) {
@@ -9,6 +9,40 @@ export async function postCommunityPost(uid: string, post: CommunityPost) {
         return post;
     } catch (error) {
         console.error("Error posting community post:", error);
+    }
+}
+
+export async function updateCommunityPost(uid: string, postId: string, updates: Partial<CommunityPost>) {
+    try {
+        // Update in user's personal posts
+        const userRef = doc(db, "users", uid, "communityPosts", postId);
+        await updateDoc(userRef, updates);
+        
+        // Update in public wall
+        const wallRef = doc(db, "postWall", postId);
+        await updateDoc(wallRef, updates);
+        
+        return true;
+    } catch (error) {
+        console.error("Error updating community post:", error);
+        throw error;
+    }
+}
+
+export async function deleteCommunityPost(uid: string, postId: string) {
+    try {
+        // Delete from user's personal posts
+        const userRef = doc(db, "users", uid, "communityPosts", postId);
+        await deleteDoc(userRef);
+        
+        // Delete from public wall
+        const wallRef = doc(db, "postWall", postId);
+        await deleteDoc(wallRef);
+        
+        return true;
+    } catch (error) {
+        console.error("Error deleting community post:", error);
+        throw error;
     }
 }
 
