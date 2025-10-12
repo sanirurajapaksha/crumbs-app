@@ -24,7 +24,15 @@ export default function HomePagePostCard(posts: CommunityPost) {
     const unlikePost = useStore((s: StoreState) => s.unlikePost);
     const likedPosts = useStore((s: StoreState) => s.likedPosts);
     const [isLiking, setIsLiking] = useState(false);
-    
+
+    const getCommentCount = (comments: any[]) => {
+        let count = 0;
+        comments.forEach((comment) => {
+            if (comment) count++;
+        });
+        return count;
+    };
+
     const hero = posts?.imageURL;
     const avatarURL = posts?.authorAvatarUrl;
     const authorName = posts.authorName;
@@ -32,15 +40,16 @@ export default function HomePagePostCard(posts: CommunityPost) {
     const subtitle = posts.description ? `${posts.description.substring(0, 80)}${posts.description.length > 80 ? "..." : ""}` : "";
     const time = timeAgo(posts.createdAt);
     const likes = posts.likeCount ?? 0;
+    const comments = getCommentCount(posts.comments || []);
     const tags = posts.tags?.slice(0, 2) || [];
-    
+
     // Check if user has liked this post
     const isLiked = likedPosts.some((p) => p.id === posts.id);
 
     const handleLikeToggle = async (e: any) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (!user) {
             Alert.alert("Login Required", "Please login to like posts");
             return;
@@ -52,11 +61,11 @@ export default function HomePagePostCard(posts: CommunityPost) {
         try {
             // Fire and forget - optimistic update handles UI
             if (isLiked) {
-                unlikePost(posts.id).catch(err => {
+                unlikePost(posts.id).catch((err) => {
                     console.error("Like sync failed:", err);
                 });
             } else {
-                likePost(posts.id).catch(err => {
+                likePost(posts.id).catch((err) => {
                     console.error("Like sync failed:", err);
                 });
             }
@@ -123,7 +132,7 @@ export default function HomePagePostCard(posts: CommunityPost) {
                                 <View style={styles.statIcon}>
                                     <Ionicons name="chatbubble-ellipses" size={14} color={colors.neutral500} />
                                 </View>
-                                <Text style={styles.statText}>0</Text>
+                                <Text style={styles.statText}>{comments}</Text>
                             </View>
                             <View style={styles.statItem}>
                                 <View style={styles.statIcon}>
