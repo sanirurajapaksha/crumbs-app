@@ -59,15 +59,8 @@ export default function SignupScreen() {
                             returnKeyType="next"
                         />
                         {password.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowPassword(!showPassword)}
-                            >
-                                <Ionicons
-                                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                                    size={22}
-                                    color={colors.neutral500}
-                                />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral500} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -83,15 +76,8 @@ export default function SignupScreen() {
                             onSubmitEditing={handleSignup}
                         />
                         {confirm.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowConfirm(!showConfirm)}
-                            >
-                                <Ionicons
-                                    name={showConfirm ? "eye-off-outline" : "eye-outline"}
-                                    size={22}
-                                    color={colors.neutral500}
-                                />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirm(!showConfirm)}>
+                                <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={22} color={colors.neutral500} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -111,23 +97,6 @@ export default function SignupScreen() {
                             </TouchableOpacity>
                         </Link>
                     </View>
-                    <View style={styles.dividerRow}>
-                        <View style={styles.divLine} />
-                        <Text style={styles.dividerLabel}>OR</Text>
-                        <View style={styles.divLine} />
-                    </View>
-                    <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert("TODO", "Google Sign-Up stub")}>
-                        <View style={styles.socialInner}>
-                            <Image source={require("../../../assets/images/google.png")} style={styles.socialIcon} />
-                            <Text style={styles.socialText}>Continue with Google</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBtn} onPress={() => Alert.alert("TODO", "Apple Sign-Up stub")}>
-                        <View style={styles.socialInner}>
-                            <Image source={require("../../../assets/images/apple.png")} style={styles.socialIcon} />
-                            <Text style={styles.socialText}>Continue with Apple</Text>
-                        </View>
-                    </TouchableOpacity>
                     <View style={{ height: 32 }} />
                 </View>
             </View>
