@@ -22,16 +22,12 @@ export default function PostCard(posts: CommunityPost) {
     const user = useStore((s: StoreState) => s.user);
     const deletePost = useStore((s: StoreState) => s.deletePost);
     const updatePost = useStore((s: StoreState) => s.updatePost);
-    const likePost = useStore((s: StoreState) => s.likePost);
-    const unlikePost = useStore((s: StoreState) => s.unlikePost);
-    const likedPosts = useStore((s: StoreState) => s.likedPosts);
     
     const [showOptionsMenu, setShowOptionsMenu] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editName, setEditName] = useState(posts.name || "");
     const [editDescription, setEditDescription] = useState(posts.description || "");
     const [isUpdating, setIsUpdating] = useState(false);
-    const [isLiking, setIsLiking] = useState(false);
     
     const hero = posts?.imageURL;
     const avatarURL = posts?.authorAvatarUrl;
@@ -40,13 +36,9 @@ export default function PostCard(posts: CommunityPost) {
     const title = posts.name?.length > 0 ? posts.name : "Shared a tasty dish";
     const subtitle = posts.description ? `${posts.description}` : "";
     const time = timeAgo(posts.createdAt);
-    const likes = posts.likeCount ?? 0;
     
     // Check if this post belongs to the current user
     const isOwnPost = user?.id === posts.authorId;
-    
-    // Check if user has liked this post
-    const isLiked = likedPosts.some((p) => p.id === posts.id);
 
     const handleDelete = () => {
         Alert.alert(
@@ -102,35 +94,6 @@ export default function PostCard(posts: CommunityPost) {
         }
     };
 
-    const handleLikeToggle = async (e: any) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (!user) {
-            Alert.alert("Login Required", "Please login to like posts");
-            return;
-        }
-
-        if (isLiking) return;
-
-        setIsLiking(true);
-        try {
-            // Fire and forget - optimistic update handles UI
-            if (isLiked) {
-                unlikePost(posts.id).catch(err => {
-                    console.error("Like sync failed:", err);
-                });
-            } else {
-                likePost(posts.id).catch(err => {
-                    console.error("Like sync failed:", err);
-                });
-            }
-        } finally {
-            // Release lock immediately for instant feedback
-            setTimeout(() => setIsLiking(false), 100);
-        }
-    };
-
     return (
         <>
             <Link href={{ pathname: "/screens/Community/PostPage", params: { id: posts.id } } as any} asChild>
@@ -161,28 +124,6 @@ export default function PostCard(posts: CommunityPost) {
                             </View>
                             <Text style={styles.title}>{title}</Text>
                             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-                            <View style={styles.metaRow}>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="time-outline" size={16} color={colors.neutral600} />
-                                    <Text style={styles.metaTxt}>{time}</Text>
-                                </View>
-                                <TouchableOpacity 
-                                    style={styles.metaItem} 
-                                    onPress={handleLikeToggle}
-                                    disabled={isLiking}
-                                >
-                                    <Ionicons 
-                                        name={isLiked ? "heart" : "heart-outline"} 
-                                        size={16} 
-                                        color={isLiked ? colors.danger : colors.neutral600} 
-                                    />
-                                    <Text style={[styles.metaTxt, isLiked && { color: colors.danger }]}>{likes}</Text>
-                                </TouchableOpacity>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.neutral600} />
-                                    <Text style={styles.metaTxt}>0</Text>
-                                </View>
-                            </View>
                         </View>
                     </View>
                 </TouchableOpacity>
