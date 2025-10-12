@@ -1,10 +1,11 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { StoreState, useStore } from "../store/useStore";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StoreState, useStore, useUtilFunctions, UtilFunctions } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { Recipe } from "../types";
+import HomePagePostCard from "../screens/Community/HomePagePostCard";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.7;
@@ -35,31 +36,17 @@ const mockRecentRecipes: Recipe[] = [
     },
 ];
 
-const mockPopularRecipes: Recipe[] = [
-    {
-        id: "3",
-        title: "Avocado Toast with a Twist",
-        heroImage: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=800",
-        cookTimeMin: 10,
-        calories_kcal: 280,
-        protein_g: 9,
-        ingredients: [],
-        steps: [],
-    },
-    {
-        id: "4",
-        title: "One-Pan Lemon Chicken",
-        heroImage: "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800",
-        cookTimeMin: 35,
-        calories_kcal: 520,
-        protein_g: 42,
-        ingredients: [],
-        steps: [],
-    },
-];
-
 export default function HomeScreen() {
     const user = useStore((s: StoreState) => s.user);
+    const posts = useStore((s: StoreState) => s.communityPosts);
+    const loadPosts = useStore((s: StoreState) => s.loadPosts);
+    const loading = useUtilFunctions((state: UtilFunctions) => state.loading);
+    const setLoading = useUtilFunctions((state: UtilFunctions) => state.setLoading);
+
+    useEffect(() => {
+        setLoading(true);
+        loadPosts().finally(() => setLoading(false));
+    }, []); // eslint-disable-line
 
     // Get time-based greeting
     const getGreeting = () => {
@@ -89,7 +76,9 @@ export default function HomeScreen() {
 
                 {/* Greeting */}
                 <View style={styles.greetingSection}>
-                    <Text style={styles.greeting}>{getGreeting()}, {user?.name || "Alex"}!</Text>
+                    <Text style={styles.greeting}>
+                        {getGreeting()}, {user?.name || "Alex"}!
+                    </Text>
                     <Text style={styles.subGreeting}>Discover new recipes tailored just for you.</Text>
                 </View>
 
@@ -119,33 +108,17 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Popular Picks Section */}
+                {/* Community Posts Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Popular Picks</Text>
+                    <Text style={styles.sectionTitle}>Community Posts</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                        {mockPopularRecipes.map((recipe) => (
-                            <TouchableOpacity key={recipe.id} style={styles.recipeCard} onPress={() => handleRecipePress(recipe)}>
-                                <Image source={{ uri: recipe.heroImage }} style={styles.recipeImage} />
-                                <View style={styles.recipeInfo}>
-                                    <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                                    <Text style={styles.recipeDescription}>
-                                        {recipe.id === "3"
-                                            ? "A simple, quick, and satisfying breakfast."
-                                            : "Juicy chicken with lemon and veggies, all on one pan."}
-                                    </Text>
-                                    <View style={styles.recipeMeta}>
-                                        <View style={styles.metaItem}>
-                                            <MaterialIcons name="schedule" size={14} color={colors.textMuted} />
-                                            <Text style={styles.metaText}>{recipe.cookTimeMin} min</Text>
-                                        </View>
-                                        <View style={styles.metaItem}>
-                                            <MaterialIcons name="star" size={14} color={colors.textMuted} />
-                                            <Text style={styles.metaText}>4.9 (124)</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
+                        {loading ? (
+                            <ActivityIndicator size="large" color={colors.accent} style={{ padding: 16 }} />
+                        ) : posts.length > 0 ? (
+                            posts.map((post) => <HomePagePostCard key={post.id} {...post} />)
+                        ) : (
+                            <Text style={{ color: colors.textMuted }}>No posts available</Text>
+                        )}
                     </ScrollView>
                 </View>
 

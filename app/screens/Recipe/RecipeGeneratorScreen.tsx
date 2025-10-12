@@ -1,20 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import {
-    Alert,
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RecipeGenerationLoader from "../../components/RecipeGenerationLoader";
 import { StoreState, useStore } from "../../store/useStore";
 import { colors } from "../../theme/colors";
-import { PantryItem } from "../../types";
 
 const { width } = Dimensions.get("window");
 
@@ -50,9 +40,7 @@ export default function RecipeGeneratorScreen() {
     const [isGenerating, setIsGenerating] = useState(false);
 
     const toggleDietary = (id: string) => {
-        setSelectedDietary((prev) =>
-            prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
-        );
+        setSelectedDietary((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
     };
 
     const selectGoal = (id: string) => {
@@ -80,10 +68,7 @@ export default function RecipeGeneratorScreen() {
                 params: { id: recipe.id },
             });
         } catch (error: any) {
-            Alert.alert(
-                "Generation Failed",
-                error.message || "Failed to generate recipe. Please try again."
-            );
+            Alert.alert("Generation Failed", error.message || "Failed to generate recipe. Please try again.");
         } finally {
             setIsGenerating(false);
         }
@@ -104,16 +89,10 @@ export default function RecipeGeneratorScreen() {
             {/* Custom Header with Gradient Background */}
             <View style={styles.headerGradient}>
                 <View style={styles.headerContent}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
                     <View style={styles.headerTextContainer}>
                         <Text style={styles.headerTitle}>What to Cook?</Text>
                         <Text style={styles.headerSubtitle}>Let AI create your perfect recipe</Text>
                     </View>
-                    <TouchableOpacity style={styles.infoButton}>
-                        <MaterialIcons name="info-outline" size={24} color="#fff" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Pantry Status Card */}
@@ -125,25 +104,18 @@ export default function RecipeGeneratorScreen() {
                         <View>
                             <Text style={styles.pantryStatusTitle}>Your Pantry</Text>
                             <Text style={styles.pantryStatusCount}>
-                                {pantryItems.length} ingredient{pantryItems.length !== 1 ? 's' : ''} ready
+                                {pantryItems.length} ingredient{pantryItems.length !== 1 ? "s" : ""} ready
                             </Text>
                         </View>
                     </View>
-                    <TouchableOpacity 
-                        style={styles.managePantryButton}
-                        onPress={() => router.push("/(tabs)/pantry")}
-                    >
+                    <TouchableOpacity style={styles.managePantryButton} onPress={() => router.push("/(tabs)/pantry")}>
                         <Text style={styles.managePantryText}>Manage</Text>
                         <MaterialIcons name="chevron-right" size={18} color={colors.accent} />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <ScrollView 
-                contentContainerStyle={styles.scrollContent} 
-                showsVerticalScrollIndicator={false}
-                style={styles.scrollView}
-            >
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} style={styles.scrollView}>
                 {/* Pantry Items Preview */}
                 {pantryItems.length > 0 ? (
                     <View style={styles.pantryPreviewSection}>
@@ -171,9 +143,7 @@ export default function RecipeGeneratorScreen() {
                                 <MaterialIcons name="shopping-basket" size={40} color={colors.accent} />
                             </View>
                             <Text style={styles.emptyPantryTitle}>Start Adding Ingredients</Text>
-                            <Text style={styles.emptyPantryText}>
-                                Add items to your pantry to generate personalized recipes
-                            </Text>
+                            <Text style={styles.emptyPantryText}>Add items to your pantry to generate personalized recipes</Text>
                         </View>
                     </View>
                 )}
@@ -182,33 +152,24 @@ export default function RecipeGeneratorScreen() {
                 <View style={styles.quickAddSection}>
                     <Text style={styles.sectionLabel}>ADD INGREDIENTS</Text>
                     <View style={styles.quickAddGrid}>
-                        <TouchableOpacity 
-                            style={styles.quickAddCard} 
-                            onPress={() => navigateToPantry("camera")}
-                        >
-                            <View style={[styles.quickAddIcon, { backgroundColor: '#FFE8E0' }]}>
+                        <TouchableOpacity style={styles.quickAddCard} onPress={() => navigateToPantry("camera")}>
+                            <View style={[styles.quickAddIcon, { backgroundColor: "#FFE8E0" }]}>
                                 <MaterialIcons name="photo-camera" size={32} color={colors.accent} />
                             </View>
                             <Text style={styles.quickAddTitle}>Snap Photo</Text>
                             <Text style={styles.quickAddDesc}>Take a picture</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={styles.quickAddCard} 
-                            onPress={() => navigateToPantry("voice")}
-                        >
-                            <View style={[styles.quickAddIcon, { backgroundColor: '#E8F5FF' }]}>
+                        <TouchableOpacity style={styles.quickAddCard} onPress={() => navigateToPantry("voice")}>
+                            <View style={[styles.quickAddIcon, { backgroundColor: "#E8F5FF" }]}>
                                 <MaterialIcons name="mic" size={32} color="#4A90E2" />
                             </View>
                             <Text style={styles.quickAddTitle}>Voice Input</Text>
                             <Text style={styles.quickAddDesc}>Speak to add</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={styles.quickAddCard} 
-                            onPress={() => navigateToPantry("manual")}
-                        >
-                            <View style={[styles.quickAddIcon, { backgroundColor: '#F0E8FF' }]}>
+                        <TouchableOpacity style={styles.quickAddCard} onPress={() => navigateToPantry("manual")}>
+                            <View style={[styles.quickAddIcon, { backgroundColor: "#F0E8FF" }]}>
                                 <MaterialIcons name="edit" size={32} color="#8B5CF6" />
                             </View>
                             <Text style={styles.quickAddTitle}>Type In</Text>
@@ -220,7 +181,7 @@ export default function RecipeGeneratorScreen() {
                 {/* Customization Section */}
                 <View style={styles.customizationSection}>
                     <Text style={styles.sectionLabel}>CUSTOMIZE YOUR RECIPE</Text>
-                    
+
                     {/* Dietary Preferences - Compact Pills */}
                     <View style={styles.customizationCard}>
                         <View style={styles.cardHeader}>
@@ -260,9 +221,7 @@ export default function RecipeGeneratorScreen() {
                                         {selectedGoal === goal.id && <View style={styles.radioInner} />}
                                     </View>
                                     <Text style={styles.radioEmoji}>{goal.icon}</Text>
-                                    <Text style={[styles.radioText, selectedGoal === goal.id && styles.radioTextSelected]}>
-                                        {goal.label}
-                                    </Text>
+                                    <Text style={[styles.radioText, selectedGoal === goal.id && styles.radioTextSelected]}>{goal.label}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -274,20 +233,14 @@ export default function RecipeGeneratorScreen() {
                             <View style={styles.preferenceBox}>
                                 <Text style={styles.preferenceTitle}>Servings</Text>
                                 <View style={styles.preferenceControl}>
-                                    <TouchableOpacity
-                                        style={styles.controlButton}
-                                        onPress={() => setServings(Math.max(1, servings - 1))}
-                                    >
+                                    <TouchableOpacity style={styles.controlButton} onPress={() => setServings(Math.max(1, servings - 1))}>
                                         <MaterialIcons name="remove-circle-outline" size={28} color={colors.accent} />
                                     </TouchableOpacity>
                                     <View style={styles.valueDisplay}>
                                         <Text style={styles.valueNumber}>{servings}</Text>
                                         <Text style={styles.valueLabel}>people</Text>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.controlButton}
-                                        onPress={() => setServings(Math.min(12, servings + 1))}
-                                    >
+                                    <TouchableOpacity style={styles.controlButton} onPress={() => setServings(Math.min(12, servings + 1))}>
                                         <MaterialIcons name="add-circle-outline" size={28} color={colors.accent} />
                                     </TouchableOpacity>
                                 </View>
@@ -296,20 +249,14 @@ export default function RecipeGeneratorScreen() {
                             <View style={styles.preferenceBox}>
                                 <Text style={styles.preferenceTitle}>Max Time</Text>
                                 <View style={styles.preferenceControl}>
-                                    <TouchableOpacity
-                                        style={styles.controlButton}
-                                        onPress={() => setMaxTime(Math.max(15, maxTime - 15))}
-                                    >
+                                    <TouchableOpacity style={styles.controlButton} onPress={() => setMaxTime(Math.max(15, maxTime - 15))}>
                                         <MaterialIcons name="remove-circle-outline" size={28} color={colors.accent} />
                                     </TouchableOpacity>
                                     <View style={styles.valueDisplay}>
                                         <Text style={styles.valueNumber}>{maxTime}</Text>
                                         <Text style={styles.valueLabel}>minutes</Text>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.controlButton}
-                                        onPress={() => setMaxTime(Math.min(180, maxTime + 15))}
-                                    >
+                                    <TouchableOpacity style={styles.controlButton} onPress={() => setMaxTime(Math.min(180, maxTime + 15))}>
                                         <MaterialIcons name="add-circle-outline" size={28} color={colors.accent} />
                                     </TouchableOpacity>
                                 </View>
@@ -324,11 +271,7 @@ export default function RecipeGeneratorScreen() {
 
             {/* Generate Button - Fixed at bottom */}
             <View style={styles.generateButtonContainer}>
-                <TouchableOpacity
-                    style={styles.generateButton}
-                    onPress={handleGenerateRecipe}
-                    disabled={isGenerating}
-                >
+                <TouchableOpacity style={styles.generateButton} onPress={handleGenerateRecipe} disabled={isGenerating}>
                     <MaterialIcons name="auto-awesome" size={22} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.generateButtonText}>Generate AI Recipe</Text>
                 </TouchableOpacity>
@@ -739,9 +682,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 24,
-        backgroundColor: "#F5F7FA",
-        borderTopWidth: 1,
-        borderTopColor: "#E5E5E5",
+        backgroundColor: "#F5F7FA00",
     },
     generateButton: {
         flexDirection: "row",
