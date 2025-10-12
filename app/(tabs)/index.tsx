@@ -71,7 +71,11 @@ export default function HomeScreen() {
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logo}>Crumbs</Text>
+                    <Image 
+                        source={require("../../assets/images/crumbs-logo.png")} 
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
                 </View>
 
                 {/* Greeting */}
@@ -146,18 +150,17 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 16,
+        paddingTop: 40,
+        paddingBottom: 8,
+        alignItems: "center",
     },
     logo: {
-        fontSize: 28,
-        fontWeight: "700",
-        color: colors.textPrimary,
-        textAlign: "center",
+        width: 250,
+        height: 100,
     },
     greetingSection: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 0,
     },
     greeting: {
         fontSize: 28,
