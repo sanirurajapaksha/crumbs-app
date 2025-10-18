@@ -6,7 +6,7 @@ import { EditIngredientModal } from "../components/EditIngredientModal";
 import { StoreState, useStore } from "../store/useStore";
 import { colors } from "../theme/colors";
 import { PantryItem } from "../types";
-import { getPantryItemImage } from "../utils/imageUtils";
+import { generateFoodImage } from "../utils/imageUtils";
 
 // Helper function to categorize pantry items
 const categorizeItems = (items: PantryItem[]) => {
@@ -86,7 +86,7 @@ const getExpiryStatus = (expiryDate: string | null | undefined) => {
 
 // Helper function to get item image from Pollinations.ai
 const getItemImageSource = (item: PantryItem) => {
-    const imageUrl = getPantryItemImage(item.name, item.imageUrl);
+    const imageUrl = generateFoodImage(item.name);
     return { uri: imageUrl };
 };
 

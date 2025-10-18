@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RecipeGenerationLoader from "../../components/RecipeGenerationLoader";
 import { StoreState, useStore } from "../../store/useStore";
+import { generateFoodImage } from "../../utils/imageUtils";
 import { colors } from "../../theme/colors";
 
 const { width } = Dimensions.get("window");
@@ -122,13 +123,7 @@ export default function RecipeGeneratorScreen() {
                         <View style={styles.pantryGrid}>
                             {displayPantryItems.map((item) => (
                                 <View key={item.id} style={styles.pantryGridItem}>
-                                    {item.imageUrl ? (
-                                        <Image source={{ uri: item.imageUrl }} style={styles.pantryGridImage} />
-                                    ) : (
-                                        <View style={[styles.pantryGridImage, styles.pantryGridImagePlaceholder]}>
-                                            <Text style={styles.pantryGridEmoji}>🥘</Text>
-                                        </View>
-                                    )}
+                                    <Image source={{ uri: generateFoodImage(item.name) }} style={styles.pantryGridImage} />
                                     <Text style={styles.pantryGridName} numberOfLines={1}>
                                         {item.name}
                                     </Text>
@@ -410,15 +405,16 @@ const styles = StyleSheet.create({
     pantryGrid: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 12,
+        justifyContent: "space-between",
     },
     pantryGridItem: {
-        width: (width - 64) / 4,
+        width: "22%",
         alignItems: "center",
+        marginBottom: 16,
     },
     pantryGridImage: {
-        width: (width - 64) / 4,
-        height: (width - 64) / 4,
+        width: "100%",
+        aspectRatio: 1,
         borderRadius: 16,
         marginBottom: 6,
     },

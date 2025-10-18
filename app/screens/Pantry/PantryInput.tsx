@@ -84,8 +84,11 @@ export default function PantryInput() {
                 await addBatchPantryItems(pantryItems);
                 Alert.alert(
                     "Success!", 
-                    `Added ${pantryItems.length} ${pantryItems.length === 1 ? 'item' : 'items'} to your pantry.`, 
-                    [{ text: "OK", onPress: () => setIngredients([]) }]
+                    `Added ${pantryItems.length} ${pantryItems.length === 1 ? 'item' : 'items'} to your pantry.`,
+                    [
+                        { text: "OK", onPress: () => setIngredients([]) },
+                        { text: "Visit Pantry", onPress: () => router.push('../(tabs)/pantry') }
+                    ]
                 );
             }
         } catch (error) {
@@ -150,7 +153,10 @@ export default function PantryInput() {
             Alert.alert(
                 "Success!", 
                 `Items updated: ${messages.join(', ')}`,
-                [{ text: "OK", onPress: () => setIngredients([]) }]
+                [
+                    { text: "OK", onPress: () => setIngredients([]) },
+                    { text: "Visit Pantry", onPress: () => router.push('../(tabs)/pantry') }
+                ]
             );
         } catch (error) {
             console.error("[PantryInput] Error resolving duplicates:", error);

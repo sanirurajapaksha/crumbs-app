@@ -35,9 +35,9 @@ export function DuplicateResolutionModal({
     onResolve,
     onCancel,
 }: DuplicateResolutionModalProps) {
-    const [decisions, setDecisions] = useState<Map<number, 'merge' | 'separate' | 'replace'>>(new Map());
+    const [decisions, setDecisions] = useState<Map<number, 'merge' | 'separate' | 'replace' | 'skip'>>(new Map());
 
-    const handleDecision = (index: number, action: 'merge' | 'separate' | 'replace') => {
+    const handleDecision = (index: number, action: 'merge' | 'separate' | 'replace' | 'skip') => {
         setDecisions(prev => {
             const updated = new Map(prev);
             updated.set(index, action);
@@ -200,7 +200,7 @@ export function DuplicateResolutionModal({
                                                 styles.actionButtonText,
                                                 decision === 'separate' && styles.actionButtonTextActive
                                             ]}>
-                                                Keep Both
+                                                Add as New
                                             </Text>
                                         </TouchableOpacity>
 
@@ -221,6 +221,26 @@ export function DuplicateResolutionModal({
                                                 decision === 'replace' && styles.actionButtonTextActive
                                             ]}>
                                                 Replace
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.actionButton,
+                                                decision === 'skip' && styles.actionButtonActive
+                                            ]}
+                                            onPress={() => handleDecision(index, 'skip')}
+                                        >
+                                            <Ionicons 
+                                                name="close-circle-outline" 
+                                                size={18} 
+                                                color={decision === 'skip' ? colors.white : colors.danger} 
+                                            />
+                                            <Text style={[
+                                                styles.actionButtonText,
+                                                decision === 'skip' && styles.actionButtonTextActive
+                                            ]}>
+                                                Skip
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
