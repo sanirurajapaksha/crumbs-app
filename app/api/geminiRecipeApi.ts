@@ -82,7 +82,7 @@ export interface GeminiRecipeResponse {
     ingredients: RecipeIngredient[];
     instructions: RecipeInstruction[];
     nutritional_info: NutritionalInfo;
-    tags: string[];
+    allergen_warnings: string[];
     dietary_info: string[];
     health_benefits?: string[];
     cooking_tips?: string[];
@@ -163,7 +163,7 @@ export function convertGeminiResponseToRecipe(geminiRecipe: GeminiRecipeResponse
         fat_g: geminiRecipe.nutritional_info.fat_g,
         isVerified: true,
         timingTag: `${geminiRecipe.total_time_minutes} min`,
-        allergyList: geminiRecipe.tags || [],
+        allergyList: geminiRecipe.allergen_warnings || [],
         ingredients: geminiRecipe.ingredients.map(ing => ({
             name: ing.name,
             qty: ing.amount,
@@ -227,13 +227,6 @@ HEALTH GOAL: Cholesterol Control
 - Include: oats, nuts, fatty fish, olive oil, vegetables
 - Cooking methods: steaming, grilling, baking`;
                 break;
-            case HealthGoal.BUILD_MUSCLE:
-                healthGoalConstraints = `
-HEALTH GOAL: Muscle Building
-- Target: 30-40g protein per serving
-- Focus: HIGH PROTEIN sources, complex carbs
-- Include: lean meats, eggs, legumes, whole grains`;
-                break;
             case HealthGoal.HEART_HEALTH:
                 healthGoalConstraints = `
 HEALTH GOAL: Heart Health
@@ -290,7 +283,7 @@ Generate a complete recipe with accurate nutritional information. Return ONLY va
     "fiber_g": 8,
     "sodium_mg": 450
   },
-  "tags": ["quick", "healthy", "family-friendly"],
+  "allergen_warnings": ["List any potential allergens like peanuts, gluten, dairy"],
   "dietary_info": ["gluten-free", "dairy-free"],
   "health_benefits": ["High in protein", "Good source of fiber"],
   "cooking_tips": ["Tip 1", "Tip 2"]
@@ -420,7 +413,7 @@ export async function generateRecipeImage(recipeName: string): Promise<string | 
                 console.log('✅ Unsplash image found');
                 return unsplashUrl;
             }
-        } catch (e) {
+        } catch {
             console.log('⚠️  Unsplash failed, trying Pollinations...');
         }
         

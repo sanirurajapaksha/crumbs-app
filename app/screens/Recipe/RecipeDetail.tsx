@@ -209,13 +209,30 @@ export default function RecipeDetail() {
                     </View>
                     
                     {recipe.allergyList && recipe.allergyList.length > 0 && (
-                        <View style={styles.allergyCard}>
-                            <MaterialIcons name="warning" size={20} color={colors.accent} />
-                            <View style={{ marginLeft: 12, flex: 1 }}>
-                                <Text style={styles.allergyTitle}>Allergy Warning</Text>
-                                <Text style={styles.allergyText}>Contains {recipe.allergyList.join(", ")}.</Text>
-                            </View>
-                        </View>
+                        (() => {
+                            const commonAllergens = [
+                                'peanuts', 'tree nuts', 'milk', 'eggs', 'soy', 'wheat', 'fish', 'shellfish',
+                                'gluten', 'sesame', 'mustard', 'celery', 'lupin', 'molluscs', 'sulphites'
+                            ];
+                            const allergens = recipe.allergyList.filter(item => 
+                                commonAllergens.some(allergen => 
+                                    item.toLowerCase().includes(allergen)
+                                )
+                            );
+
+                            if (allergens.length > 0) {
+                                return (
+                                    <View style={styles.allergyCard}>
+                                        <MaterialIcons name="warning" size={20} color={colors.accent} />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.allergyTitle}>Allergy Warning</Text>
+                                            <Text style={styles.allergyText}>Contains {allergens.join(", ")}.</Text>
+                                        </View>
+                                    </View>
+                                );
+                            }
+                            return null;
+                        })()
                     )}
                 </View>
             </ScrollView>

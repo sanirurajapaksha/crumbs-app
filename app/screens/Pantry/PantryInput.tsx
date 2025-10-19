@@ -87,7 +87,7 @@ export default function PantryInput() {
                     `Added ${pantryItems.length} ${pantryItems.length === 1 ? 'item' : 'items'} to your pantry.`,
                     [
                         { text: "OK", onPress: () => setIngredients([]) },
-                        { text: "Visit Pantry", onPress: () => router.push('../(tabs)/pantry') }
+                        { text: "Visit Pantry", onPress: () => router.push('/(tabs)/pantry') }
                     ]
                 );
             }
@@ -155,7 +155,7 @@ export default function PantryInput() {
                 `Items updated: ${messages.join(', ')}`,
                 [
                     { text: "OK", onPress: () => setIngredients([]) },
-                    { text: "Visit Pantry", onPress: () => router.push('../(tabs)/pantry') }
+                    { text: "Visit Pantry", onPress: () => router.push('/(tabs)/pantry') }
                 ]
             );
         } catch (error) {
